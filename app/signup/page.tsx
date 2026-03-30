@@ -4,14 +4,16 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 
-export default function LoginPage() {
-  const { login, isLoggedIn } = useApp();
+export default function SignupPage() {
+  const { signup, isLoggedIn } = useApp();
   const router = useRouter();
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -19,22 +21,35 @@ export default function LoginPage() {
     if (isLoggedIn) router.push('/feed');
   }, [isLoggedIn, router]);
 
-  const handleLogin = () => {
-    if (!email || !password) return;
+  const validate = () => {
+    if (!name.trim()) return 'Please enter your full name.';
+    if (!email.trim()) return 'Please enter your email.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Please enter a valid email address.';
+    if (password.length < 6) return 'Password must be at least 6 characters.';
+    if (password !== confirmPassword) return 'Passwords do not match.';
+    return null;
+  };
+
+  const handleSignup = () => {
+    const validationError = validate();
+    if (validationError) { setError(validationError); return; }
+
     setError('');
     setLoading(true);
     setTimeout(() => {
-      const success = login(email, password);
-      if (success) {
+      const result = signup(name.trim(), email.trim(), password);
+      if (result.success) {
         router.push('/feed');
       } else {
-        setError('Invalid email or password. Please try again.');
+        setError(result.error || 'Something went wrong.');
         setLoading(false);
       }
     }, 800);
   };
 
   if (!mounted) return null;
+
+  const isValid = name && email && password && confirmPassword;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-violet-50 flex items-center justify-center p-4">
@@ -59,12 +74,30 @@ export default function LoginPage() {
                   <circle cx="16.5" cy="14.5" r="1.5"/>
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-slate-900 mb-1">Welcome back</h1>
-              <p className="text-slate-400 text-sm">Sign in to your Ridemate account</p>
+              <h1 className="text-2xl font-bold text-slate-900 mb-1">Create an account</h1>
+              <p className="text-slate-400 text-sm">Join the Ridemate community today</p>
             </div>
 
             {/* Form */}
             <div className="space-y-4 mb-6">
+              {/* Name */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => { setName(e.target.value); setError(''); }}
+                  onKeyDown={e => e.key === 'Enter' && handleSignup()}
+                  placeholder="Jamie Chen"
+                  className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all ${
+                    error ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-slate-200 focus:border-violet-400 focus:ring-violet-100'
+                  }`}
+                />
+              </div>
+
+              {/* Email */}
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                   Email
@@ -73,14 +106,15 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={e => { setEmail(e.target.value); setError(''); }}
-                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                  onKeyDown={e => e.key === 'Enter' && handleSignup()}
+                  placeholder="you@example.com"
                   className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all ${
                     error ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-slate-200 focus:border-violet-400 focus:ring-violet-100'
                   }`}
-                  placeholder="you@ridemate.com"
                 />
               </div>
 
+              {/* Password */}
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
                   Password
@@ -90,11 +124,11 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={e => { setPassword(e.target.value); setError(''); }}
-                    onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                    onKeyDown={e => e.key === 'Enter' && handleSignup()}
+                    placeholder="Min. 6 characters"
                     className={`w-full pl-4 pr-11 py-3 bg-slate-50 border rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all ${
                       error ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-slate-200 focus:border-violet-400 focus:ring-violet-100'
                     }`}
-                    placeholder="••••••••"
                   />
                   <button
                     type="button"
@@ -113,9 +147,60 @@ export default function LoginPage() {
                     )}
                   </button>
                 </div>
+
+                {/* Password strength */}
+                {password.length > 0 && (
+                  <div className="mt-2 flex gap-1">
+                    {[1, 2, 3, 4].map(i => (
+                      <div
+                        key={i}
+                        className={`h-1 flex-1 rounded-full transition-all ${
+                          password.length >= i * 3
+                            ? password.length >= 10 ? 'bg-emerald-400' : password.length >= 6 ? 'bg-amber-400' : 'bg-rose-400'
+                            : 'bg-slate-100'
+                        }`}
+                      />
+                    ))}
+                    <span className="text-xs text-slate-400 ml-1">
+                      {password.length >= 10 ? 'Strong' : password.length >= 6 ? 'Good' : 'Weak'}
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {/* Error message */}
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={e => { setConfirmPassword(e.target.value); setError(''); }}
+                    onKeyDown={e => e.key === 'Enter' && handleSignup()}
+                    placeholder="Repeat your password"
+                    className={`w-full pl-4 pr-11 py-3 bg-slate-50 border rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all ${
+                      error ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : 'border-slate-200 focus:border-violet-400 focus:ring-violet-100'
+                    }`}
+                  />
+                  {confirmPassword.length > 0 && (
+                    <span className={`absolute right-3 top-1/2 -translate-y-1/2 ${password === confirmPassword ? 'text-emerald-500' : 'text-rose-400'}`}>
+                      {password === confirmPassword ? (
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Error */}
               {error && (
                 <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 rounded-xl">
                   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-rose-500 flex-shrink-0">
@@ -126,11 +211,12 @@ export default function LoginPage() {
               )}
             </div>
 
+            {/* Submit */}
             <button
-              onClick={handleLogin}
-              disabled={loading || !email || !password}
+              onClick={handleSignup}
+              disabled={loading || !isValid}
               className={`w-full py-3.5 rounded-2xl font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2 ${
-                !loading && email && password
+                !loading && isValid
                   ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-200 hover:shadow-violet-300 active:scale-[0.98]'
                   : 'bg-slate-100 text-slate-400 cursor-not-allowed'
               }`}
@@ -141,39 +227,23 @@ export default function LoginPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Signing in...
+                  Creating account...
                 </>
               ) : (
-                'Sign In'
+                'Create Account'
               )}
             </button>
 
-            <div className="mt-4 text-center">
-              <p className="text-xs text-slate-400">
-                Don&apos;t have an account?{' '}
-                <button
-                  onClick={() => router.push('/signup')}
-                  className="text-violet-600 font-medium hover:text-violet-700"
-                >
-                  Sign up for free
-                </button>
-              </p>
-            </div>
+            <p className="text-center text-xs text-slate-400 mt-4">
+              Already have an account?{' '}
+              <button
+                onClick={() => router.push('/login')}
+                className="text-violet-600 font-medium hover:text-violet-700"
+              >
+                Sign in
+              </button>
+            </p>
           </div>
-        </div>
-
-        {/* Trust indicators */}
-        <div className="mt-6 flex items-center justify-center gap-6">
-          {[
-            { label: '2,400+ members', icon: '👥' },
-            { label: 'Verified profiles', icon: '✓' },
-            { label: 'Free to start', icon: '🎉' },
-          ].map(item => (
-            <div key={item.label} className="text-center">
-              <p className="text-base">{item.icon}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{item.label}</p>
-            </div>
-          ))}
         </div>
       </div>
     </div>
