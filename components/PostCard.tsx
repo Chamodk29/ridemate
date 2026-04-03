@@ -25,15 +25,35 @@ function formatDate(dateStr: string) {
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
+function formatTime(timeStr: string) {
+  if (!timeStr) return '';
+  const [h, m] = timeStr.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+const GENDER_LABELS = {
+  male: { label: 'Male only', color: 'bg-blue-50 text-blue-700 border-blue-200' },
+  female: { label: 'Female only', color: 'bg-pink-50 text-pink-700 border-pink-200' },
+  any: { label: 'Open to all', color: 'bg-slate-50 text-slate-600 border-slate-200' },
+};
+
+const USER_GENDER_ICONS = {
+  male: '♂',
+  female: '♀',
+  other: '⚧',
+  prefer_not_to_say: '',
+};
+
 export default function PostCard({ post }: Props) {
   const [showComments, setShowComments] = useState(false);
   const [liked, setLiked] = useState(false);
-
   const isOffering = post.type === 'offering';
+  const genderPref = GENDER_LABELS[post.genderPreference] || GENDER_LABELS.any;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all duration-200 overflow-hidden">
-      {/* Type badge bar */}
       <div className={`h-0.5 ${isOffering ? 'bg-gradient-to-r from-emerald-400 to-teal-400' : 'bg-gradient-to-r from-violet-400 to-indigo-400'}`} />
 
       <div className="p-5">
@@ -41,11 +61,8 @@ export default function PostCard({ post }: Props) {
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
             <div className="relative flex-shrink-0">
-              <img
-                src={post.userAvatar}
-                alt={post.userName}
-                className="w-10 h-10 rounded-full bg-slate-100 ring-2 ring-white shadow-sm"
-              />
+              <img src={post.userAvatar} alt={post.userName}
+                className="w-10 h-10 rounded-full bg-slate-100 ring-2 ring-white shadow-sm" />
               {post.userVerification === 'verified' && (
                 <span className="absolute -bottom-0.5 -right-0.5 text-emerald-500 bg-white rounded-full">
                   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -55,33 +72,41 @@ export default function PostCard({ post }: Props) {
               )}
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-semibold text-slate-900 text-sm">{post.userName}</span>
+                {post.userGender && post.userGender !== 'prefer_not_to_say' && (
+                  <span className="text-xs text-slate-400">{USER_GENDER_ICONS[post.userGender]}</span>
+                )}
                 <VerificationBadge status={post.userVerification} showLabel />
               </div>
-              <span className="text-xs text-slate-400">{timeAgo(post.timestamp)}</span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-xs text-slate-400">{timeAgo(post.timestamp)}</span>
+                {post.city && (
+                  <span className="flex items-center gap-1 text-xs text-slate-500">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {post.city}, {post.country}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Type tag */}
-          <span className={`flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
-            isOffering
-              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-              : 'bg-violet-50 text-violet-700 border border-violet-200'
-          }`}>
-            {isOffering ? (
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
-                <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5z"/>
-                <circle cx="7.5" cy="14.5" r="1.5"/>
-                <circle cx="16.5" cy="14.5" r="1.5"/>
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
-                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-              </svg>
+          {/* Type + gender preference tags */}
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+              isOffering ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-violet-50 text-violet-700 border border-violet-200'
+            }`}>
+              {isOffering ? '🚗' : '🔍'} {isOffering ? 'Offering' : 'Looking'}
+            </span>
+            {post.genderPreference !== 'any' && (
+              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${genderPref.color}`}>
+                {genderPref.label}
+              </span>
             )}
-            {isOffering ? 'Offering' : 'Looking'}
-          </span>
+          </div>
         </div>
 
         {/* Route */}
@@ -98,31 +123,30 @@ export default function PostCard({ post }: Props) {
           </div>
         </div>
 
-        {/* Meta info */}
+        {/* Meta chips */}
         <div className="flex flex-wrap gap-2 mb-3">
           <span className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5 text-slate-400">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
             {formatDate(post.date)}
           </span>
           <span className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5 text-slate-400">
-              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
-            {post.time}
+            {formatTime(post.time)}
           </span>
           {post.seats && (
             <span className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5 text-slate-400">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
-              {post.seats} {post.seats === 1 ? 'seat' : 'seats'} available
+              {post.seats} seat{post.seats !== 1 ? 's' : ''} available
             </span>
           )}
         </div>
 
-        {/* Description */}
         <p className="text-sm text-slate-600 leading-relaxed mb-4">{post.description}</p>
 
         {/* Actions */}
@@ -130,9 +154,7 @@ export default function PostCard({ post }: Props) {
           <button
             onClick={() => setLiked(!liked)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              liked
-                ? 'text-rose-600 bg-rose-50 hover:bg-rose-100'
-                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+              liked ? 'text-rose-600 bg-rose-50 hover:bg-rose-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
             }`}
           >
             <svg viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2} className="w-4 h-4">
@@ -159,10 +181,7 @@ export default function PostCard({ post }: Props) {
           </button>
         </div>
 
-        {/* Comments */}
-        {showComments && (
-          <CommentsSection postId={post.id} comments={post.comments} />
-        )}
+        {showComments && <CommentsSection postId={post.id} comments={post.comments} />}
       </div>
     </div>
   );

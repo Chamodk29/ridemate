@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { User, Post, Comment } from '@/types';
+import { User, Post, Comment, CityResult } from '@/types';
 import { MOCK_USERS, MOCK_POSTS } from '@/data/mockData';
 
 interface AppContextType {
@@ -12,6 +12,7 @@ interface AppContextType {
   users: User[];
   subscriptionActive: boolean;
   showOnboarding: boolean;
+  selectedCity: CityResult | null;
   login: (email: string, password: string) => boolean;
   signup: (name: string, email: string, password: string) => { success: boolean; error?: string };
   logout: () => void;
@@ -20,6 +21,7 @@ interface AppContextType {
   addPost: (post: Post) => void;
   addComment: (postId: string, comment: Comment) => void;
   toggleSubscription: () => void;
+  setSelectedCity: (city: CityResult | null) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -32,6 +34,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [subscriptionActive, setSubscriptionActive] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [selectedCity, setSelectedCity] = useState<CityResult | null>(null);
 
   const login = (email: string, password: string): boolean => {
     const user = users.find(
@@ -79,6 +82,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setCurrentUser(null);
     setUserModeState(null);
     setShowOnboarding(false);
+    setSelectedCity(null);
   };
 
   const setUserMode = (mode: 'looking' | 'offering') => {
@@ -93,9 +97,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addComment = (postId: string, comment: Comment) => {
     setPosts(prev =>
       prev.map(p =>
-        p.id === postId
-          ? { ...p, comments: [...p.comments, comment] }
-          : p
+        p.id === postId ? { ...p, comments: [...p.comments, comment] } : p
       )
     );
   };
@@ -106,21 +108,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      isLoggedIn,
-      currentUser,
-      userMode,
-      posts,
-      users,
-      subscriptionActive,
-      showOnboarding,
-      login,
-      signup,
-      logout,
-      setUserMode,
-      setShowOnboarding,
-      addPost,
-      addComment,
-      toggleSubscription,
+      isLoggedIn, currentUser, userMode, posts, users,
+      subscriptionActive, showOnboarding, selectedCity,
+      login, signup, logout, setUserMode, setShowOnboarding,
+      addPost, addComment, toggleSubscription, setSelectedCity,
     }}>
       {children}
     </AppContext.Provider>
