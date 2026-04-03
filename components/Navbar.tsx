@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 import VerificationBadge from './VerificationBadge';
 
 export default function Navbar() {
-  const { currentUser, logout, subscriptionActive, toggleSubscription } = useApp();
+  const { currentUser, logout, subscriptionActive, toggleSubscription, unreadCount } = useApp();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -25,6 +25,16 @@ export default function Navbar() {
       ),
     },
     {
+      label: 'Messages',
+      path: '/messages',
+      badge: unreadCount,
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      ),
+    },
+    {
       label: 'Profile',
       path: '/profile',
       icon: (
@@ -39,13 +49,10 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-100">
       <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
-        <button
-          onClick={() => router.push('/feed')}
-          className="flex items-center gap-2.5 group"
-        >
+        <button onClick={() => router.push('/feed')} className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-200 group-hover:shadow-violet-300 transition-shadow">
             <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4">
-              <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5z"/>
+              <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99z"/>
               <circle cx="7.5" cy="14.5" r="1.5"/>
               <circle cx="16.5" cy="14.5" r="1.5"/>
             </svg>
@@ -59,7 +66,7 @@ export default function Navbar() {
             <button
               key={item.path}
               onClick={() => router.push(item.path)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 pathname === item.path
                   ? 'bg-violet-50 text-violet-700'
                   : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
@@ -67,16 +74,21 @@ export default function Navbar() {
             >
               {item.icon}
               {item.label}
+              {item.badge != null && item.badge > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-violet-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                  {item.badge > 9 ? '9+' : item.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
         {/* Right side */}
         <div className="flex items-center gap-2">
-          {/* Subscription toggle (dev helper) */}
+          {/* Subscription toggle */}
           <button
             onClick={toggleSubscription}
-            title={subscriptionActive ? 'Subscription: Active (click to test paywall)' : 'Subscription: Inactive (click to restore)'}
+            title={subscriptionActive ? 'Pro active (click to test paywall)' : 'Free plan (click to restore)'}
             className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
               subscriptionActive
                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
@@ -94,11 +106,8 @@ export default function Navbar() {
               className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full hover:bg-slate-50 transition-colors group"
             >
               <div className="relative">
-                <img
-                  src={currentUser.avatar}
-                  alt={currentUser.name}
-                  className="w-7 h-7 rounded-full bg-slate-100 ring-2 ring-white"
-                />
+                <img src={currentUser.avatar} alt={currentUser.name}
+                  className="w-7 h-7 rounded-full bg-slate-100 ring-2 ring-white" />
                 {currentUser.verificationStatus === 'verified' && (
                   <span className="absolute -bottom-0.5 -right-0.5 text-emerald-500">
                     <svg viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
@@ -114,11 +123,8 @@ export default function Navbar() {
           )}
 
           {/* Logout */}
-          <button
-            onClick={handleLogout}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-            title="Logout"
-          >
+          <button onClick={handleLogout}
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-lg transition-colors" title="Logout">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
@@ -132,12 +138,17 @@ export default function Navbar() {
           <button
             key={item.path}
             onClick={() => router.push(item.path)}
-            className={`flex-1 flex flex-col items-center gap-1 py-2 text-xs font-medium transition-colors ${
+            className={`flex-1 relative flex flex-col items-center gap-1 py-2 text-xs font-medium transition-colors ${
               pathname === item.path ? 'text-violet-700' : 'text-slate-400'
             }`}
           >
             {item.icon}
             {item.label}
+            {item.badge != null && item.badge > 0 && (
+              <span className="absolute top-1 right-1/4 w-4 h-4 bg-violet-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                {item.badge > 9 ? '9+' : item.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>

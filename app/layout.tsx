@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
+import DMPanel from "@/components/DMPanel";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -21,7 +22,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <body className="min-h-full bg-slate-50 font-sans">
-        <AppProvider>{children}</AppProvider>
+        <AppProvider>
+          {children}
+          <DMPanel />
+        </AppProvider>
       </body>
     </html>
   );

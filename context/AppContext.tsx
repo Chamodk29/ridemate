@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { User, Post, Comment, CityResult } from '@/types';
+import { User, Post, Comment, CityResult, Conversation, Message } from '@/types';
 import { MOCK_USERS, MOCK_POSTS } from '@/data/mockData';
 
 interface AppContextType {
@@ -13,6 +13,8 @@ interface AppContextType {
   subscriptionActive: boolean;
   showOnboarding: boolean;
   selectedCity: CityResult | null;
+  conversations: Conversation[];
+  activeDMConversationId: string | null;
   login: (email: string, password: string) => boolean;
   signup: (name: string, email: string, password: string) => { success: boolean; error?: string };
   logout: () => void;
@@ -22,6 +24,11 @@ interface AppContextType {
   addComment: (postId: string, comment: Comment) => void;
   toggleSubscription: () => void;
   setSelectedCity: (city: CityResult | null) => void;
+  openDM: (post: Post) => void;
+  closeDM: () => void;
+  sendMessage: (conversationId: string, content: string) => void;
+  markAsRead: (conversationId: string) => void;
+  unreadCount: number;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -35,6 +42,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [subscriptionActive, setSubscriptionActive] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [selectedCity, setSelectedCity] = useState<CityResult | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeDMConversationId, setActiveDMConversationId] = useState<string | null>(null);
 
   const login = (email: string, password: string): boolean => {
     const user = users.find(
@@ -54,12 +63,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const now = new Date();
     const memberSince = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
     const newUser: User = {
       id: `user-${Date.now()}`,
-      name,
-      email,
-      password,
+      name, email, password,
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4`,
       verificationStatus: 'not_verified',
       subscriptionActive: false,
@@ -68,7 +74,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       totalRides: 0,
       rating: 0,
     };
-
     setUsers(prev => [...prev, newUser]);
     setCurrentUser(newUser);
     setSubscriptionActive(false);
@@ -83,6 +88,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setUserModeState(null);
     setShowOnboarding(false);
     setSelectedCity(null);
+    setActiveDMConversationId(null);
   };
 
   const setUserMode = (mode: 'looking' | 'offering') => {
@@ -90,28 +96,102 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setShowOnboarding(false);
   };
 
-  const addPost = (post: Post) => {
-    setPosts(prev => [post, ...prev]);
-  };
+  const addPost = (post: Post) => setPosts(prev => [post, ...prev]);
 
   const addComment = (postId: string, comment: Comment) => {
     setPosts(prev =>
-      prev.map(p =>
-        p.id === postId ? { ...p, comments: [...p.comments, comment] } : p
+      prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, comment] } : p)
+    );
+  };
+
+  const toggleSubscription = () => setSubscriptionActive(prev => !prev);
+
+  // DM methods
+  const openDM = (post: Post) => {
+    if (!currentUser) return;
+    const otherId = post.userId;
+    const otherUser = users.find(u => u.id === otherId);
+    if (!otherUser || otherId === currentUser.id) return;
+
+    // Find or create conversation
+    const existing = conversations.find(c =>
+      c.participantIds.includes(currentUser.id) &&
+      c.participantIds.includes(otherId) &&
+      c.postId === post.id
+    );
+
+    if (existing) {
+      setActiveDMConversationId(existing.id);
+      return;
+    }
+
+    const newConv: Conversation = {
+      id: `conv-${Date.now()}`,
+      participantIds: [currentUser.id, otherId],
+      participantNames: [currentUser.name, otherUser.name],
+      participantAvatars: [currentUser.avatar, otherUser.avatar],
+      participantVerifications: [currentUser.verificationStatus, otherUser.verificationStatus],
+      messages: [],
+      postId: post.id,
+      postSnapshot: {
+        type: post.type,
+        from: post.from,
+        to: post.to,
+        city: post.city,
+        country: post.country,
+      },
+      createdAt: new Date().toISOString(),
+    };
+
+    setConversations(prev => [newConv, ...prev]);
+    setActiveDMConversationId(newConv.id);
+  };
+
+  const closeDM = () => setActiveDMConversationId(null);
+
+  const sendMessage = (conversationId: string, content: string) => {
+    if (!currentUser || !content.trim()) return;
+    const msg: Message = {
+      id: `msg-${Date.now()}`,
+      senderId: currentUser.id,
+      content: content.trim(),
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+    setConversations(prev =>
+      prev.map(c => c.id === conversationId ? { ...c, messages: [...c.messages, msg] } : c)
+    );
+  };
+
+  const markAsRead = (conversationId: string) => {
+    if (!currentUser) return;
+    setConversations(prev =>
+      prev.map(c =>
+        c.id === conversationId
+          ? {
+              ...c,
+              messages: c.messages.map(m =>
+                m.senderId !== currentUser.id ? { ...m, read: true } : m
+              ),
+            }
+          : c
       )
     );
   };
 
-  const toggleSubscription = () => {
-    setSubscriptionActive(prev => !prev);
-  };
+  const unreadCount = conversations.reduce((count, conv) => {
+    if (!currentUser) return count;
+    return count + conv.messages.filter(m => m.senderId !== currentUser.id && !m.read).length;
+  }, 0);
 
   return (
     <AppContext.Provider value={{
       isLoggedIn, currentUser, userMode, posts, users,
       subscriptionActive, showOnboarding, selectedCity,
+      conversations, activeDMConversationId, unreadCount,
       login, signup, logout, setUserMode, setShowOnboarding,
       addPost, addComment, toggleSubscription, setSelectedCity,
+      openDM, closeDM, sendMessage, markAsRead,
     }}>
       {children}
     </AppContext.Provider>

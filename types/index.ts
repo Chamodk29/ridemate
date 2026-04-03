@@ -56,3 +56,29 @@ export interface Post {
   timestamp: string;
   comments: Comment[];
 }
+
+export interface Message {
+  id: string;
+  senderId: string;
+  content: string;
+  timestamp: string;
+  read: boolean;
+}
+
+export interface Conversation {
+  id: string;
+  participantIds: [string, string];
+  participantNames: [string, string];
+  participantAvatars: [string, string];
+  participantVerifications: [VerificationStatus, VerificationStatus];
+  messages: Message[];
+  postId?: string;
+  postSnapshot?: {
+    type: 'offering' | 'looking';
+    from: string;
+    to: string;
+    city: string;
+    country: string;
+  };
+  createdAt: string;
+}
