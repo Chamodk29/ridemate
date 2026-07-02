@@ -16,7 +16,6 @@ export interface User {
   name: string;
   avatar: string;
   email: string;
-  password: string;
   gender?: Gender;
   verificationStatus: VerificationStatus;
   subscriptionActive: boolean;

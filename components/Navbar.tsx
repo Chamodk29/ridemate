@@ -9,8 +9,8 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push('/login');
   };
 

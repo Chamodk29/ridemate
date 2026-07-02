@@ -30,21 +30,19 @@ export default function SignupPage() {
     return null;
   };
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     const validationError = validate();
     if (validationError) { setError(validationError); return; }
 
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const result = signup(name.trim(), email.trim(), password);
-      if (result.success) {
-        router.push('/feed');
-      } else {
-        setError(result.error || 'Something went wrong.');
-        setLoading(false);
-      }
-    }, 800);
+    const result = await signup(name.trim(), email.trim(), password);
+    if (result.success) {
+      router.push('/feed');
+    } else {
+      setError(result.error ?? 'Something went wrong.');
+      setLoading(false);
+    }
   };
 
   if (!mounted) return null;

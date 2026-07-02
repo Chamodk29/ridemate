@@ -1,8 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { User, Post, Comment, CityResult, Conversation, Message } from '@/types';
-import { MOCK_USERS, MOCK_POSTS } from '@/data/mockData';
+
+const supabase = createClient();
+
+type AuthResult = { success: boolean; error?: string };
 
 interface AppContextType {
   isLoggedIn: boolean;
@@ -15,105 +19,347 @@ interface AppContextType {
   selectedCity: CityResult | null;
   conversations: Conversation[];
   activeDMConversationId: string | null;
-  login: (email: string, password: string) => boolean;
-  signup: (name: string, email: string, password: string) => { success: boolean; error?: string };
-  logout: () => void;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  signup: (name: string, email: string, password: string) => Promise<AuthResult>;
+  logout: () => Promise<void>;
   setUserMode: (mode: 'looking' | 'offering') => void;
   setShowOnboarding: (show: boolean) => void;
-  addPost: (post: Post) => void;
-  addComment: (postId: string, comment: Comment) => void;
+  addPost: (post: Post) => Promise<void>;
+  addComment: (postId: string, comment: Comment) => Promise<void>;
   toggleSubscription: () => void;
   setSelectedCity: (city: CityResult | null) => void;
-  openDM: (post: Post) => void;
+  openDM: (post: Post) => Promise<void>;
   closeDM: () => void;
-  sendMessage: (conversationId: string, content: string) => void;
-  markAsRead: (conversationId: string) => void;
+  sendMessage: (conversationId: string, content: string) => Promise<void>;
+  markAsRead: (conversationId: string) => Promise<void>;
   unreadCount: number;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
 
+// ── Mappers ───────────────────────────────────────────────────────────────────
+
+function mapPost(p: any): Post {
+  return {
+    id: p.id,
+    userId: p.user_id,
+    userName: p.profile?.name ?? 'Unknown',
+    userAvatar: p.profile?.avatar ?? '',
+    userVerification: p.profile?.verification_status ?? 'not_verified',
+    userGender: p.profile?.gender,
+    type: p.type,
+    from: p.from_location,
+    to: p.to_location,
+    city: p.city,
+    country: p.country,
+    date: p.date,
+    time: p.time,
+    seats: p.seats,
+    genderPreference: p.gender_preference,
+    description: p.description ?? '',
+    timestamp: p.created_at,
+    comments: (p.comments ?? []).map((c: any) => ({
+      id: c.id,
+      userId: c.user?.id ?? c.user_id,
+      userName: c.user?.name ?? 'Unknown',
+      userAvatar: c.user?.avatar ?? '',
+      userVerification: c.user?.verification_status ?? 'not_verified',
+      content: c.content,
+      timestamp: c.created_at,
+    })),
+  };
+}
+
+function mapConversation(c: any, messages: any[]): Conversation {
+  const participants = c.participants ?? [];
+  return {
+    id: c.id,
+    participantIds: c.participant_ids,
+    participantNames: participants.map((p: any) => p.name),
+    participantAvatars: participants.map((p: any) => p.avatar),
+    participantVerifications: participants.map((p: any) => p.verification_status),
+    messages: messages.map((m: any) => ({
+      id: m.id,
+      senderId: m.sender_id,
+      content: m.content,
+      timestamp: m.created_at,
+      read: m.read,
+    })),
+    postId: c.post_id,
+    postSnapshot: c.post_snapshot,
+    createdAt: c.created_at,
+  };
+}
+
+// ── Provider ──────────────────────────────────────────────────────────────────
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userMode, setUserModeState] = useState<'looking' | 'offering' | null>(null);
-  const [posts, setPosts] = useState<Post[]>(MOCK_POSTS);
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
-  const [subscriptionActive, setSubscriptionActive] = useState(true);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [subscriptionActive, setSubscriptionActive] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [selectedCity, setSelectedCity] = useState<CityResult | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeDMConversationId, setActiveDMConversationId] = useState<string | null>(null);
 
-  const login = (email: string, password: string): boolean => {
-    const user = users.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
-    if (!user) return false;
-    setCurrentUser(user);
-    setSubscriptionActive(user.subscriptionActive);
-    setIsLoggedIn(true);
-    setShowOnboarding(true);
-    return true;
+  // ── Load helpers ────────────────────────────────────────────────────────────
+
+  const loadProfile = async (userId: string, email: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (data) {
+      setCurrentUser({
+        id: data.id,
+        name: data.name,
+        email,
+        avatar: data.avatar ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(data.name)}&backgroundColor=b6e3f4`,
+        gender: data.gender,
+        verificationStatus: data.verification_status,
+        subscriptionActive: data.subscription_active,
+        memberSince: data.member_since ?? '',
+        bio: data.bio ?? '',
+        totalRides: data.total_rides ?? 0,
+        rating: data.rating ?? 0,
+      });
+      setSubscriptionActive(data.subscription_active);
+      setIsLoggedIn(true);
+    }
   };
 
-  const signup = (name: string, email: string, password: string): { success: boolean; error?: string } => {
-    const exists = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (exists) return { success: false, error: 'An account with this email already exists.' };
+  const loadPosts = async () => {
+    const { data } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        profile:profiles!posts_user_id_fkey(name, avatar, verification_status, gender),
+        comments(
+          id, content, created_at, user_id,
+          user:profiles!comments_user_id_fkey(id, name, avatar, verification_status)
+        )
+      `)
+      .order('created_at', { ascending: false });
 
-    const now = new Date();
-    const memberSince = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    const newUser: User = {
-      id: `user-${Date.now()}`,
-      name, email, password,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4`,
-      verificationStatus: 'not_verified',
-      subscriptionActive: false,
-      memberSince,
-      bio: 'New to Ridemate. Looking forward to connecting with the community!',
-      totalRides: 0,
-      rating: 0,
-    };
-    setUsers(prev => [...prev, newUser]);
-    setCurrentUser(newUser);
-    setSubscriptionActive(false);
-    setIsLoggedIn(true);
-    setShowOnboarding(true);
+    if (data) setPosts(data.map(mapPost));
+  };
+
+  const loadConversations = async (userId: string) => {
+    const { data } = await supabase
+      .from('conversations')
+      .select('*, messages(id, sender_id, content, read, created_at)')
+      .contains('participant_ids', [userId])
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setConversations(data.map(c => mapConversation(c, c.messages ?? [])));
+    }
+  };
+
+  // ── Auth state ──────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        await loadProfile(session.user.id, session.user.email ?? '');
+        await loadPosts();
+        await loadConversations(session.user.id);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        await loadProfile(session.user.id, session.user.email ?? '');
+        await loadPosts();
+        await loadConversations(session.user.id);
+        if (event === 'SIGNED_IN') setShowOnboarding(true);
+      } else {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        setPosts([]);
+        setConversations([]);
+        setUserModeState(null);
+        setShowOnboarding(false);
+        setSelectedCity(null);
+        setActiveDMConversationId(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ── Real-time: posts ────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const channel = supabase
+      .channel('realtime-posts')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, async (payload) => {
+        const { data } = await supabase
+          .from('posts')
+          .select(`
+            *,
+            profile:profiles!posts_user_id_fkey(name, avatar, verification_status, gender),
+            comments(
+              id, content, created_at, user_id,
+              user:profiles!comments_user_id_fkey(id, name, avatar, verification_status)
+            )
+          `)
+          .eq('id', payload.new.id)
+          .single();
+
+        if (data) setPosts(prev => [mapPost(data), ...prev]);
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isLoggedIn]);
+
+  // ── Real-time: messages ─────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const channel = supabase
+      .channel('realtime-messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
+        const msg: Message = {
+          id: payload.new.id,
+          senderId: payload.new.sender_id,
+          content: payload.new.content,
+          timestamp: payload.new.created_at,
+          read: payload.new.read,
+        };
+        setConversations(prev =>
+          prev.map(c =>
+            c.id === payload.new.conversation_id
+              ? { ...c, messages: [...c.messages, msg] }
+              : c
+          )
+        );
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isLoggedIn]);
+
+  // ── Real-time: comments ─────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    const channel = supabase
+      .channel('realtime-comments')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'comments' }, async (payload) => {
+        const { data } = await supabase
+          .from('comments')
+          .select('id, content, created_at, user_id, user:profiles!comments_user_id_fkey(id, name, avatar, verification_status)')
+          .eq('id', payload.new.id)
+          .single();
+
+        if (!data) return;
+        const comment: Comment = {
+          id: data.id,
+          userId: (data.user as any)?.id ?? data.user_id,
+          userName: (data.user as any)?.name ?? 'Unknown',
+          userAvatar: (data.user as any)?.avatar ?? '',
+          userVerification: (data.user as any)?.verification_status ?? 'not_verified',
+          content: data.content,
+          timestamp: data.created_at,
+        };
+        setPosts(prev =>
+          prev.map(p =>
+            p.id === payload.new.post_id
+              ? { ...p, comments: [...p.comments, comment] }
+              : p
+          )
+        );
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isLoggedIn]);
+
+  // ── Auth functions ──────────────────────────────────────────────────────────
+
+  const login = async (email: string, password: string): Promise<AuthResult> => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { success: false, error: 'Invalid email or password. Please try again.' };
     return { success: true };
   };
 
-  const logout = () => {
-    setIsLoggedIn(false);
-    setCurrentUser(null);
-    setUserModeState(null);
-    setShowOnboarding(false);
-    setSelectedCity(null);
-    setActiveDMConversationId(null);
+  const signup = async (name: string, email: string, password: string): Promise<AuthResult> => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          name,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4`,
+        },
+      },
+    });
+    if (error) {
+      if (error.message.includes('already registered')) {
+        return { success: false, error: 'An account with this email already exists.' };
+      }
+      return { success: false, error: error.message };
+    }
+    return { success: true };
   };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  // ── App functions ───────────────────────────────────────────────────────────
 
   const setUserMode = (mode: 'looking' | 'offering') => {
     setUserModeState(mode);
     setShowOnboarding(false);
   };
 
-  const addPost = (post: Post) => setPosts(prev => [post, ...prev]);
+  const addPost = async (post: Post) => {
+    if (!currentUser) return;
+    await supabase.from('posts').insert({
+      user_id: currentUser.id,
+      type: post.type,
+      from_location: post.from,
+      to_location: post.to,
+      city: post.city,
+      country: post.country,
+      date: post.date,
+      time: post.time,
+      seats: post.seats ?? null,
+      gender_preference: post.genderPreference,
+      description: post.description,
+    });
+    // Real-time subscription handles adding to state
+  };
 
-  const addComment = (postId: string, comment: Comment) => {
-    setPosts(prev =>
-      prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, comment] } : p)
-    );
+  const addComment = async (postId: string, comment: Comment) => {
+    if (!currentUser) return;
+    await supabase.from('comments').insert({
+      post_id: postId,
+      user_id: currentUser.id,
+      content: comment.content,
+    });
+    // Real-time subscription handles adding to state
   };
 
   const toggleSubscription = () => setSubscriptionActive(prev => !prev);
 
-  // DM methods
-  const openDM = (post: Post) => {
+  const openDM = async (post: Post) => {
     if (!currentUser) return;
     const otherId = post.userId;
-    const otherUser = users.find(u => u.id === otherId);
-    if (!otherUser || otherId === currentUser.id) return;
+    if (otherId === currentUser.id) return;
 
-    // Find or create conversation
+    // Check if conversation already exists
     const existing = conversations.find(c =>
       c.participantIds.includes(currentUser.id) &&
       c.participantIds.includes(otherId) &&
@@ -125,55 +371,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const newConv: Conversation = {
-      id: `conv-${Date.now()}`,
-      participantIds: [currentUser.id, otherId],
-      participantNames: [currentUser.name, otherUser.name],
-      participantAvatars: [currentUser.avatar, otherUser.avatar],
-      participantVerifications: [currentUser.verificationStatus, otherUser.verificationStatus],
-      messages: [],
-      postId: post.id,
-      postSnapshot: {
-        type: post.type,
-        from: post.from,
-        to: post.to,
-        city: post.city,
-        country: post.country,
-      },
-      createdAt: new Date().toISOString(),
-    };
+    // Fetch the other user's profile
+    const { data: otherProfile } = await supabase
+      .from('profiles')
+      .select('id, name, avatar, verification_status')
+      .eq('id', otherId)
+      .single();
 
-    setConversations(prev => [newConv, ...prev]);
-    setActiveDMConversationId(newConv.id);
+    if (!otherProfile) return;
+
+    const participants = [
+      { id: currentUser.id, name: currentUser.name, avatar: currentUser.avatar, verification_status: currentUser.verificationStatus },
+      { id: otherProfile.id, name: otherProfile.name, avatar: otherProfile.avatar, verification_status: otherProfile.verification_status },
+    ];
+
+    const { data: newConv } = await supabase
+      .from('conversations')
+      .insert({
+        participant_ids: [currentUser.id, otherId],
+        participants,
+        post_id: post.id,
+        post_snapshot: {
+          type: post.type,
+          from: post.from,
+          to: post.to,
+          city: post.city,
+          country: post.country,
+        },
+      })
+      .select()
+      .single();
+
+    if (newConv) {
+      const conv = mapConversation({ ...newConv, participants }, []);
+      setConversations(prev => [conv, ...prev]);
+      setActiveDMConversationId(newConv.id);
+    }
   };
 
   const closeDM = () => setActiveDMConversationId(null);
 
-  const sendMessage = (conversationId: string, content: string) => {
+  const sendMessage = async (conversationId: string, content: string) => {
     if (!currentUser || !content.trim()) return;
-    const msg: Message = {
-      id: `msg-${Date.now()}`,
-      senderId: currentUser.id,
+    await supabase.from('messages').insert({
+      conversation_id: conversationId,
+      sender_id: currentUser.id,
       content: content.trim(),
-      timestamp: new Date().toISOString(),
       read: false,
-    };
-    setConversations(prev =>
-      prev.map(c => c.id === conversationId ? { ...c, messages: [...c.messages, msg] } : c)
-    );
+    });
+    // Real-time subscription handles adding to state
   };
 
-  const markAsRead = (conversationId: string) => {
+  const markAsRead = async (conversationId: string) => {
     if (!currentUser) return;
+    await supabase
+      .from('messages')
+      .update({ read: true })
+      .eq('conversation_id', conversationId)
+      .neq('sender_id', currentUser.id);
+
     setConversations(prev =>
       prev.map(c =>
         c.id === conversationId
-          ? {
-              ...c,
-              messages: c.messages.map(m =>
-                m.senderId !== currentUser.id ? { ...m, read: true } : m
-              ),
-            }
+          ? { ...c, messages: c.messages.map(m => m.senderId !== currentUser.id ? { ...m, read: true } : m) }
           : c
       )
     );
@@ -186,7 +446,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      isLoggedIn, currentUser, userMode, posts, users,
+      isLoggedIn, currentUser, userMode, posts, users: [],
       subscriptionActive, showOnboarding, selectedCity,
       conversations, activeDMConversationId, unreadCount,
       login, signup, logout, setUserMode, setShowOnboarding,

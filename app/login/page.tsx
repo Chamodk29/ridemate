@@ -19,19 +19,17 @@ export default function LoginPage() {
     if (isLoggedIn) router.push('/feed');
   }, [isLoggedIn, router]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) return;
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const success = login(email, password);
-      if (success) {
-        router.push('/feed');
-      } else {
-        setError('Invalid email or password. Please try again.');
-        setLoading(false);
-      }
-    }, 800);
+    const result = await login(email, password);
+    if (result.success) {
+      router.push('/feed');
+    } else {
+      setError(result.error ?? 'Invalid email or password. Please try again.');
+      setLoading(false);
+    }
   };
 
   if (!mounted) return null;
