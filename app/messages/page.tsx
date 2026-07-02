@@ -19,7 +19,7 @@ function timeAgo(timestamp: string) {
 }
 
 export default function MessagesPage() {
-  const { isLoggedIn, currentUser, conversations, openDM, activeDMConversationId, markAsRead, posts } = useApp();
+  const { isLoggedIn, currentUser, conversations, openDMById, activeDMConversationId, markAsRead } = useApp();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
@@ -35,15 +35,8 @@ export default function MessagesPage() {
   );
 
   const handleOpen = (convId: string) => {
-    const conv = conversations.find(c => c.id === convId);
-    if (!conv) return;
     markAsRead(convId);
-    // Find the matching post to re-open via openDM context
-    const post = posts.find(p => p.id === conv.postId);
-    if (post) openDM(post);
-    else {
-      // Fallback: set active directly via a workaround — just mark as read
-    }
+    openDMById(convId);
   };
 
   return (

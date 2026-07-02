@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { User, Post, Comment, CityResult, Conversation, Message } from '@/types';
 
@@ -29,6 +29,7 @@ interface AppContextType {
   toggleSubscription: () => void;
   setSelectedCity: (city: CityResult | null) => void;
   openDM: (post: Post) => Promise<void>;
+  openDMById: (conversationId: string) => void;
   closeDM: () => void;
   sendMessage: (conversationId: string, content: string) => Promise<void>;
   markAsRead: (conversationId: string) => Promise<void>;
@@ -409,6 +410,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const openDMById = (conversationId: string) => setActiveDMConversationId(conversationId);
+
   const closeDM = () => setActiveDMConversationId(null);
 
   const sendMessage = async (conversationId: string, content: string) => {
@@ -451,7 +454,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       conversations, activeDMConversationId, unreadCount,
       login, signup, logout, setUserMode, setShowOnboarding,
       addPost, addComment, toggleSubscription, setSelectedCity,
-      openDM, closeDM, sendMessage, markAsRead,
+      openDM, openDMById, closeDM, sendMessage, markAsRead,
     }}>
       {children}
     </AppContext.Provider>
