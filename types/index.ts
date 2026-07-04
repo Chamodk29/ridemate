@@ -52,6 +52,7 @@ export interface Post {
   time: string;
   seats?: number;
   genderPreference: GenderPreference;
+  waypoints: string[];
   costType: CostType;
   costAmount?: number;
   description: string;

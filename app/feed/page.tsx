@@ -87,8 +87,15 @@ export default function FeedPage() {
   const filteredPosts = useMemo(() => {
     return posts.filter(post => {
       if (selectedCity) {
-        if (post.city.toLowerCase() !== selectedCity.name.toLowerCase()) return false;
-        if (post.country.toLowerCase() !== selectedCity.country.toLowerCase()) return false;
+        const cityName = selectedCity.name.toLowerCase();
+        const countryName = selectedCity.country.toLowerCase();
+        const matchesCity = post.city.toLowerCase() === cityName && post.country.toLowerCase() === countryName;
+        // Also match rides that pass through this city via waypoints or from/to fields
+        const matchesRoute =
+          post.from.toLowerCase().includes(cityName) ||
+          post.to.toLowerCase().includes(cityName) ||
+          (post.waypoints ?? []).some(wp => wp.toLowerCase().includes(cityName));
+        if (!matchesCity && !matchesRoute) return false;
       }
       if (filters.rideType !== 'all' && post.type !== filters.rideType) return false;
       if (filters.gender !== 'all' && post.genderPreference !== filters.gender) return false;

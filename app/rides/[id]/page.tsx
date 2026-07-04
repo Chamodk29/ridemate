@@ -48,6 +48,7 @@ function mapPost(p: any): Post {
     time: p.time,
     seats: p.seats,
     genderPreference: p.gender_preference,
+    waypoints: p.waypoints ?? [],
     costType: p.cost_type ?? 'split',
     costAmount: p.cost_amount ?? undefined,
     description: p.description ?? '',
@@ -179,23 +180,43 @@ export default function RideDetailsPage() {
                   <span className="text-xs text-slate-400 ml-auto">{timeAgo(post.timestamp)}</span>
                 </div>
 
-                {/* Route — big */}
-                <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl mb-5">
-                  <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-                    <div className={`w-3 h-3 rounded-full ${isOffering ? 'bg-emerald-500' : 'bg-violet-500'}`} />
-                    <div className="w-px h-8 bg-slate-300" />
-                    <div className={`w-3 h-3 rounded-sm rotate-45 ${isOffering ? 'bg-emerald-500' : 'bg-violet-500'}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-base font-bold text-slate-900">{post.from}</p>
-                    <p className="text-xs text-slate-400 my-1.5">to</p>
-                    <p className="text-base font-bold text-slate-900">{post.to}</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs text-slate-400">{post.city}</p>
-                    <p className="text-xs text-slate-400">{post.country}</p>
+                {/* Route — full stop timeline */}
+                <div className="p-4 bg-slate-50 rounded-xl mb-5">
+                  <div className="relative pl-7">
+                    <div className="absolute left-[5px] top-2 bottom-2 w-px bg-slate-300" />
+                    {/* From */}
+                    <div className="relative mb-4">
+                      <div className={`absolute -left-7 top-1 w-3 h-3 rounded-full ring-2 ring-white ${isOffering ? 'bg-emerald-500' : 'bg-violet-500'}`} />
+                      <p className="text-base font-bold text-slate-900 leading-tight">{post.from}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Start</p>
+                    </div>
+                    {/* Waypoints */}
+                    {(post.waypoints ?? []).map((wp, i) => (
+                      <div key={i} className="relative mb-4">
+                        <div className="absolute -left-[26px] top-1.5 w-2 h-2 rounded-full bg-slate-400 ring-2 ring-white" />
+                        <p className="text-sm font-medium text-slate-700 leading-tight">{wp}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">Stop {i + 1}</p>
+                      </div>
+                    ))}
+                    {/* To */}
+                    <div className="relative">
+                      <div className={`absolute -left-7 top-1 w-3 h-3 rotate-45 ring-2 ring-white ${isOffering ? 'bg-emerald-500' : 'bg-violet-500'}`} />
+                      <p className="text-base font-bold text-slate-900 leading-tight">{post.to}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Destination · {post.city}, {post.country}</p>
+                    </div>
                   </div>
                 </div>
+
+                {/* Partial ride info */}
+                {(post.waypoints ?? []).length > 0 && (
+                  <div className="flex items-start gap-3 p-3 bg-violet-50 border border-violet-100 rounded-xl mb-5">
+                    <span className="text-lg flex-shrink-0">💡</span>
+                    <div>
+                      <p className="text-sm font-semibold text-violet-800">This ride passes through {(post.waypoints ?? []).join(' and ')}</p>
+                      <p className="text-xs text-violet-600 mt-0.5">You can board or alight at any stop — just let the driver know your pickup and dropoff when you message them.</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Meta grid */}
                 <div className="grid grid-cols-2 gap-3 mb-5">

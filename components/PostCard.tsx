@@ -130,9 +130,19 @@ export default function PostCard({ post }: Props) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-slate-800 truncate">{post.from}</p>
-            <p className="text-xs text-slate-400 my-1">to</p>
+            {(post.waypoints ?? []).length > 0 && (
+              <p className="text-xs text-slate-400 my-0.5 truncate">
+                via {(post.waypoints ?? []).join(' · ')}
+              </p>
+            )}
+            {(post.waypoints ?? []).length === 0 && <p className="text-xs text-slate-400 my-1">to</p>}
             <p className="text-sm font-semibold text-slate-800 truncate">{post.to}</p>
           </div>
+          {(post.waypoints ?? []).length > 0 && (
+            <span className="flex-shrink-0 text-xs text-slate-400 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
+              {(post.waypoints ?? []).length} stop{(post.waypoints ?? []).length !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
 
         {/* Cost chip */}

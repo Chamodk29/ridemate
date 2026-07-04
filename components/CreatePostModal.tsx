@@ -25,6 +25,7 @@ export default function CreatePostModal({ onClose }: Props) {
   const [time, setTime] = useState('');
   const [seats, setSeats] = useState('');
   const [genderPreference, setGenderPreference] = useState<GenderPreference>('any');
+  const [waypoints, setWaypoints] = useState<string[]>([]);
   const [costType, setCostType] = useState<CostType>('split');
   const [costAmount, setCostAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -66,6 +67,7 @@ export default function CreatePostModal({ onClose }: Props) {
         time,
         seats: type === 'offering' && seats ? parseInt(seats) : undefined,
         genderPreference,
+        waypoints: waypoints.filter(w => w.trim()),
         costType,
         costAmount: costType === 'fixed' && costAmount ? parseFloat(costAmount) : undefined,
         description,
@@ -201,6 +203,54 @@ export default function CreatePostModal({ onClose }: Props) {
                 </div>
               </>
             )}
+          </div>
+
+          {/* Stops along the way */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                Stops along the way <span className="text-slate-300 font-normal normal-case">(optional)</span>
+              </label>
+            </div>
+            <div className="space-y-2">
+              {waypoints.map((wp, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-400" />
+                    <input
+                      type="text"
+                      value={wp}
+                      onChange={e => {
+                        const updated = [...waypoints];
+                        updated[i] = e.target.value;
+                        setWaypoints(updated);
+                      }}
+                      placeholder={`Stop ${i + 1} — e.g. Kandy`}
+                      className="w-full pl-8 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setWaypoints(waypoints.filter((_, j) => j !== i))}
+                    className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors flex-shrink-0"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+              {waypoints.length < 5 && (
+                <button
+                  onClick={() => setWaypoints([...waypoints, ''])}
+                  className="flex items-center gap-1.5 text-xs text-violet-600 font-medium hover:text-violet-700 py-1 transition-colors"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add a stop
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Date & Time */}
