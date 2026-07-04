@@ -240,6 +240,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await loadProfile(session.user.id, session.user.email ?? '');
         await loadPosts();
         await loadConversations(session.user.id);
+        const savedMode = localStorage.getItem('ridemate_mode') as 'looking' | 'offering' | null;
+        if (savedMode) setUserModeState(savedMode);
       }
     });
 
@@ -249,7 +251,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await loadProfile(session.user.id, session.user.email ?? '');
         await loadPosts();
         await loadConversations(session.user.id);
-        setShowOnboarding(true);
+        const savedMode = localStorage.getItem('ridemate_mode') as 'looking' | 'offering' | null;
+        if (savedMode) {
+          setUserModeState(savedMode);
+        } else {
+          setShowOnboarding(true);
+        }
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
         setCurrentUser(null);
@@ -259,6 +266,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setShowOnboarding(false);
         setSelectedCity(null);
         setActiveDMConversationId(null);
+        localStorage.removeItem('ridemate_mode');
       }
       // TOKEN_REFRESHED and INITIAL_SESSION are intentionally ignored —
       // they fire on every navigation and would cause constant re-fetching.
@@ -397,6 +405,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setUserMode = (mode: 'looking' | 'offering') => {
     setUserModeState(mode);
     setShowOnboarding(false);
+    localStorage.setItem('ridemate_mode', mode);
   };
 
   const addPost = async (post: Post) => {
