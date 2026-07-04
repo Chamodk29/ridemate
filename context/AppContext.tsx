@@ -26,6 +26,7 @@ interface AppContextType {
   setUserMode: (mode: 'looking' | 'offering') => void;
   setShowOnboarding: (show: boolean) => void;
   addPost: (post: Post) => Promise<void>;
+  deletePost: (postId: string) => Promise<void>;
   addComment: (postId: string, comment: Comment) => Promise<void>;
   toggleSubscription: () => void;
   setSelectedCity: (city: CityResult | null) => void;
@@ -347,6 +348,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Real-time subscription handles adding to state
   };
 
+  const deletePost = async (postId: string) => {
+    await supabase.from('posts').delete().eq('id', postId);
+    setPosts(prev => prev.filter(p => p.id !== postId));
+  };
+
   const addComment = async (postId: string, comment: Comment) => {
     if (!currentUser) return;
     await supabase.from('comments').insert({
@@ -457,7 +463,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       subscriptionActive, showOnboarding, selectedCity,
       conversations, activeDMConversationId, unreadCount,
       login, signup, logout, setUserMode, setShowOnboarding,
-      addPost, addComment, toggleSubscription, setSelectedCity,
+      addPost, deletePost, addComment, toggleSubscription, setSelectedCity,
       openDM, openDMById, closeDM, sendMessage, markAsRead,
     }}>
       {children}

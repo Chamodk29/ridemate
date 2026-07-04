@@ -50,10 +50,18 @@ const USER_GENDER_ICONS = {
 export default function PostCard({ post }: Props) {
   const [showComments, setShowComments] = useState(false);
   const [liked, setLiked] = useState(false);
-  const { currentUser, openDM } = useApp();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const { currentUser, openDM, deletePost } = useApp();
   const isOffering = post.type === 'offering';
   const isOwn = currentUser?.id === post.userId;
   const genderPref = GENDER_LABELS[post.genderPreference] || GENDER_LABELS.any;
+
+  const handleDelete = async () => {
+    if (!confirmDelete) { setConfirmDelete(true); return; }
+    setDeleting(true);
+    await deletePost(post.id);
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all duration-200 overflow-hidden">
@@ -186,6 +194,43 @@ export default function PostCard({ post }: Props) {
               </svg>
               Message
             </button>
+          )}
+
+          {isOwn && (
+            <div className="ml-auto flex items-center gap-2">
+              {confirmDelete && !deleting && (
+                <>
+                  <span className="text-xs text-rose-500 font-medium">Delete this post?</span>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100 transition-all"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  confirmDelete
+                    ? 'bg-rose-600 text-white hover:bg-rose-700'
+                    : 'text-slate-400 hover:text-rose-500 hover:bg-rose-50'
+                }`}
+              >
+                {deleting ? (
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                )}
+                {confirmDelete ? 'Confirm' : 'Delete'}
+              </button>
+            </div>
           )}
         </div>
 
