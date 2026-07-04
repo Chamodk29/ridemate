@@ -225,6 +225,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // ── Auth state ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
+    // Initial load — runs once on mount
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
         await loadProfile(session.user.id, session.user.email ?? '');
@@ -234,12 +235,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
+      if (event === 'SIGNED_IN' && session) {
+        // Fresh sign-in (not token refresh or initial session restore)
         await loadProfile(session.user.id, session.user.email ?? '');
         await loadPosts();
         await loadConversations(session.user.id);
-        if (event === 'SIGNED_IN') setShowOnboarding(true);
-      } else {
+        setShowOnboarding(true);
+      } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false);
         setCurrentUser(null);
         setPosts([]);
@@ -249,6 +251,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setSelectedCity(null);
         setActiveDMConversationId(null);
       }
+      // TOKEN_REFRESHED and INITIAL_SESSION are intentionally ignored —
+      // they fire on every navigation and would cause constant re-fetching.
     });
 
     return () => subscription.unsubscribe();
