@@ -8,10 +8,33 @@ import PostCard from '@/components/PostCard';
 import VerificationBadge from '@/components/VerificationBadge';
 
 export default function ProfilePage() {
-  const { isLoggedIn, currentUser, posts, subscriptionActive, toggleSubscription } = useApp();
+  const { isLoggedIn, currentUser, posts, subscriptionActive, toggleSubscription, updateProfile } = useApp();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editBio, setEditBio] = useState('');
+  const [editGender, setEditGender] = useState('');
+
+  const startEdit = () => {
+    if (!currentUser) return;
+    setEditName(currentUser.name);
+    setEditBio(currentUser.bio ?? '');
+    setEditGender(currentUser.gender ?? 'prefer_not_to_say');
+    setIsEditing(true);
+  };
+
+  const cancelEdit = () => setIsEditing(false);
+
+  const saveEdit = async () => {
+    if (!editName.trim()) return;
+    setSaving(true);
+    await updateProfile({ name: editName.trim(), bio: editBio.trim(), gender: editGender });
+    setSaving(false);
+    setIsEditing(false);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -79,15 +102,75 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              <button className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-                Edit Profile
-              </button>
+              {isEditing ? (
+                <div className="flex items-center gap-2">
+                  <button onClick={cancelEdit} className="px-3 py-2 border border-slate-200 rounded-xl text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors">
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveEdit}
+                    disabled={saving || !editName.trim()}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 disabled:opacity-50 transition-colors"
+                  >
+                    {saving ? (
+                      <svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                      </svg>
+                    ) : null}
+                    Save
+                  </button>
+                </div>
+              ) : (
+                <button onClick={startEdit} className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+                  Edit Profile
+                </button>
+              )}
             </div>
 
             {/* Name & details */}
-            <h1 className="text-xl font-bold text-slate-900 mb-0.5">{currentUser.name}</h1>
-            <p className="text-sm text-slate-400 mb-3">{currentUser.email}</p>
-            <p className="text-sm text-slate-600 leading-relaxed mb-4">{currentUser.bio}</p>
+            {isEditing ? (
+              <div className="space-y-3 mb-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Name</label>
+                  <input
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:border-violet-400 focus:ring-violet-100 transition-all"
+                    placeholder="Your name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Bio</label>
+                  <textarea
+                    value={editBio}
+                    onChange={e => setEditBio(e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:border-violet-400 focus:ring-violet-100 transition-all resize-none"
+                    placeholder="Tell the community about yourself..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Gender</label>
+                  <select
+                    value={editGender}
+                    onChange={e => setEditGender(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:border-violet-400 focus:ring-violet-100 transition-all"
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                    <option value="prefer_not_to_say">Prefer not to say</option>
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-xl font-bold text-slate-900 mb-0.5">{currentUser.name}</h1>
+                <p className="text-sm text-slate-400 mb-3">{currentUser.email}</p>
+                <p className="text-sm text-slate-600 leading-relaxed mb-4">{currentUser.bio || <span className="text-slate-400 italic">No bio yet — click Edit Profile to add one.</span>}</p>
+              </>
+            )}
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3 mb-4">

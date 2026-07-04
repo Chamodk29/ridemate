@@ -33,6 +33,7 @@ interface AppContextType {
   setShowOnboarding: (show: boolean) => void;
   addPost: (post: Post) => Promise<void>;
   deletePost: (postId: string) => Promise<void>;
+  updateProfile: (fields: { name: string; bio: string; gender: string }) => Promise<void>;
   addComment: (postId: string, comment: Comment) => Promise<void>;
   toggleSubscription: () => void;
   setSelectedCity: (city: CityResult | null) => void;
@@ -382,6 +383,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     showToast('Comment posted');
   };
 
+  const updateProfile = async (fields: { name: string; bio: string; gender: string }) => {
+    if (!currentUser) return;
+    const newAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(fields.name)}&backgroundColor=b6e3f4`;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ name: fields.name, bio: fields.bio, gender: fields.gender, avatar: newAvatar })
+      .eq('id', currentUser.id);
+    if (error) { showToast('Failed to save profile', 'error'); return; }
+    setCurrentUser(prev => prev ? { ...prev, ...fields, avatar: newAvatar } : prev);
+    showToast('Profile saved!');
+  };
+
   const toggleSubscription = () => setSubscriptionActive(prev => !prev);
 
   const openDM = async (post: Post) => {
@@ -484,6 +497,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       conversations, activeDMConversationId, unreadCount,
       login, signup, logout, setUserMode, setShowOnboarding,
       addPost, deletePost, addComment, toggleSubscription, setSelectedCity,
+      updateProfile,
       openDM, openDMById, closeDM, sendMessage, markAsRead,
       toasts, showToast, dismissToast,
     }}>
