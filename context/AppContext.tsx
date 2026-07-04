@@ -17,6 +17,7 @@ interface Toast {
 interface AppContextType {
   isLoggedIn: boolean;
   isLoadingPosts: boolean;
+  isLoadingConversations: boolean;
   currentUser: User | null;
   userMode: 'looking' | 'offering' | null;
   posts: Post[];
@@ -117,6 +118,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [selectedCity, setSelectedCity] = useState<CityResult | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeDMConversationId, setActiveDMConversationId] = useState<string | null>(null);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const showToast = (message: string, type: Toast['type'] = 'success') => {
@@ -174,6 +176,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const loadConversations = async (userId: string) => {
+    setIsLoadingConversations(true);
     const { data } = await supabase
       .from('conversations')
       .select('*, messages(id, sender_id, content, read, created_at)')
@@ -183,6 +186,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (data) {
       setConversations(data.map(c => mapConversation(c, c.messages ?? [])));
     }
+    setIsLoadingConversations(false);
   };
 
   // ── Auth state ──────────────────────────────────────────────────────────────
@@ -492,7 +496,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      isLoggedIn, isLoadingPosts, currentUser, userMode, posts, users: [],
+      isLoggedIn, isLoadingPosts, isLoadingConversations, currentUser, userMode, posts, users: [],
       subscriptionActive, showOnboarding, selectedCity,
       conversations, activeDMConversationId, unreadCount,
       login, signup, logout, setUserMode, setShowOnboarding,

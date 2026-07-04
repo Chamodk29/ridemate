@@ -18,8 +18,22 @@ function timeAgo(timestamp: string) {
   return 'Just now';
 }
 
+function ConversationSkeleton() {
+  return (
+    <div className="w-full flex items-center gap-3 p-4 bg-white rounded-2xl border border-slate-100 animate-pulse">
+      <div className="w-12 h-12 rounded-full bg-slate-200 flex-shrink-0" />
+      <div className="flex-1 min-w-0 space-y-2">
+        <div className="h-3.5 w-32 bg-slate-200 rounded-full" />
+        <div className="h-3 w-48 bg-slate-100 rounded-full" />
+        <div className="h-3 w-40 bg-slate-100 rounded-full" />
+      </div>
+      <div className="h-3 w-10 bg-slate-100 rounded-full flex-shrink-0" />
+    </div>
+  );
+}
+
 export default function MessagesPage() {
-  const { isLoggedIn, currentUser, conversations, openDMById, activeDMConversationId, markAsRead } = useApp();
+  const { isLoggedIn, currentUser, conversations, isLoadingConversations, openDMById, activeDMConversationId, markAsRead } = useApp();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
@@ -48,13 +62,21 @@ export default function MessagesPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900 mb-1">Messages</h1>
           <p className="text-sm text-slate-400">
-            {myConversations.length === 0
+            {isLoadingConversations
+              ? 'Loading...'
+              : myConversations.length === 0
               ? 'No conversations yet'
               : `${myConversations.length} conversation${myConversations.length !== 1 ? 's' : ''}`}
           </p>
         </div>
 
-        {myConversations.length === 0 ? (
+        {isLoadingConversations ? (
+          <div className="space-y-2">
+            <ConversationSkeleton />
+            <ConversationSkeleton />
+            <ConversationSkeleton />
+          </div>
+        ) : myConversations.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-slate-100">
             <div className="w-16 h-16 bg-violet-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-8 h-8 text-violet-400">
