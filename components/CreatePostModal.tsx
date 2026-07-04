@@ -23,6 +23,17 @@ export default function CreatePostModal({ onClose }: Props) {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [mapSrc, setMapSrc] = useState('');
+
+  useEffect(() => {
+    if (!from.trim() || !to.trim()) { setMapSrc(''); return; }
+    const timer = setTimeout(() => {
+      const origin = encodeURIComponent(`${from.trim()}${city ? ', ' + city + ', ' + country : ''}`);
+      const dest   = encodeURIComponent(`${to.trim()}${city ? ', ' + city + ', ' + country : ''}`);
+      setMapSrc(`https://maps.google.com/maps?f=d&saddr=${origin}&daddr=${dest}&output=embed&t=m`);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [from, to, city, country]);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -166,6 +177,26 @@ export default function CreatePostModal({ onClose }: Props) {
               </div>
             </div>
           </div>
+
+          {/* Route map preview */}
+          {mapSrc && (
+            <div className="rounded-xl overflow-hidden border border-slate-200">
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-200">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-violet-500 flex-shrink-0">
+                  <path fillRule="evenodd" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" clipRule="evenodd"/>
+                </svg>
+                <span className="text-xs font-semibold text-slate-600">Route Preview</span>
+                <span className="text-xs text-slate-400 ml-auto">{from} → {to}</span>
+              </div>
+              <iframe
+                key={mapSrc}
+                src={mapSrc}
+                className="w-full h-48 border-0"
+                loading="lazy"
+                title="Route preview"
+              />
+            </div>
+          )}
 
           {/* Date & Time */}
           <div className="grid grid-cols-2 gap-3">
