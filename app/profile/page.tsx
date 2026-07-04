@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Gender } from '@/types';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
@@ -31,7 +32,7 @@ export default function ProfilePage() {
   const saveEdit = async () => {
     if (!editName.trim()) return;
     setSaving(true);
-    await updateProfile({ name: editName.trim(), bio: editBio.trim(), gender: editGender });
+    await updateProfile({ name: editName.trim(), bio: editBio.trim(), gender: editGender as Gender });
     setSaving(false);
     setIsEditing(false);
   };

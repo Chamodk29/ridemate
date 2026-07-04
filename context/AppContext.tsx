@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { User, Post, Comment, CityResult, Conversation, Message } from '@/types';
+import { User, Post, Comment, CityResult, Conversation, Message, Gender } from '@/types';
 
 const supabase = createClient();
 
@@ -37,7 +37,7 @@ interface AppContextType {
   addPost: (post: Post) => Promise<void>;
   loadMorePosts: () => Promise<void>;
   deletePost: (postId: string) => Promise<void>;
-  updateProfile: (fields: { name: string; bio: string; gender: string }) => Promise<void>;
+  updateProfile: (fields: { name: string; bio: string; gender: Gender }) => Promise<void>;
   addComment: (postId: string, comment: Comment) => Promise<void>;
   toggleSubscription: () => void;
   setSelectedCity: (city: CityResult | null) => void;
@@ -420,7 +420,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     showToast('Comment posted');
   };
 
-  const updateProfile = async (fields: { name: string; bio: string; gender: string }) => {
+  const updateProfile = async (fields: { name: string; bio: string; gender: Gender }) => {
     if (!currentUser) return;
     const newAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(fields.name)}&backgroundColor=b6e3f4`;
     const { error } = await supabase
