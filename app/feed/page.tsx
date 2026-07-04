@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
@@ -39,12 +39,28 @@ const TIME_OPTIONS: { key: TimeOfDay; label: string; icon: string; sub?: string 
 ];
 
 export default function FeedPage() {
-  const { isLoggedIn, isLoadingPosts, posts, showOnboarding, subscriptionActive, selectedCity, setSelectedCity } = useApp();
+  const { isLoggedIn, isLoadingPosts, isLoadingMorePosts, hasMorePosts, loadMorePosts, posts, showOnboarding, subscriptionActive, selectedCity, setSelectedCity } = useApp();
   const router = useRouter();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<Filters>({ rideType: 'all', gender: 'all', timeOfDay: 'all' });
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const handleLoadMore = useCallback(() => {
+    if (!isLoadingMorePosts && hasMorePosts) loadMorePosts();
+  }, [isLoadingMorePosts, hasMorePosts, loadMorePosts]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      entries => { if (entries[0].isIntersecting) handleLoadMore(); },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [handleLoadMore]);
 
   useEffect(() => {
     setMounted(true);
@@ -290,7 +306,27 @@ export default function FeedPage() {
                 )}
               </div>
             ) : (
-              filteredPosts.map(post => <PostCard key={post.id} post={post} />)
+              <>
+                {filteredPosts.map(post => <PostCard key={post.id} post={post} />)}
+
+                {/* Infinite scroll sentinel — only shown when no filters are active */}
+                {!selectedCity && activeFilterCount === 0 && (
+                  <>
+                    {isLoadingMorePosts && (
+                      <>
+                        <PostCardSkeleton />
+                        <PostCardSkeleton />
+                      </>
+                    )}
+                    {!isLoadingMorePosts && hasMorePosts && (
+                      <div ref={sentinelRef} className="h-8" />
+                    )}
+                    {!hasMorePosts && filteredPosts.length > 0 && (
+                      <p className="text-center text-xs text-slate-400 py-4">You&apos;ve seen all rides</p>
+                    )}
+                  </>
+                )}
+              </>
             )}
           </div>
           {!subscriptionActive && <PaywallOverlay />}

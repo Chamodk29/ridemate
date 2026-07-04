@@ -17,6 +17,8 @@ interface Toast {
 interface AppContextType {
   isLoggedIn: boolean;
   isLoadingPosts: boolean;
+  isLoadingMorePosts: boolean;
+  hasMorePosts: boolean;
   isLoadingConversations: boolean;
   currentUser: User | null;
   userMode: 'looking' | 'offering' | null;
@@ -33,6 +35,7 @@ interface AppContextType {
   setUserMode: (mode: 'looking' | 'offering') => void;
   setShowOnboarding: (show: boolean) => void;
   addPost: (post: Post) => Promise<void>;
+  loadMorePosts: () => Promise<void>;
   deletePost: (postId: string) => Promise<void>;
   updateProfile: (fields: { name: string; bio: string; gender: string }) => Promise<void>;
   addComment: (postId: string, comment: Comment) => Promise<void>;
@@ -118,6 +121,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [selectedCity, setSelectedCity] = useState<CityResult | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeDMConversationId, setActiveDMConversationId] = useState<string | null>(null);
+  const [isLoadingMorePosts, setIsLoadingMorePosts] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [postsPage, setPostsPage] = useState(0);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -157,22 +163,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const PAGE_SIZE = 10;
+
+  const POST_QUERY = `
+    *,
+    profile:profiles!posts_user_id_fkey(name, avatar, verification_status, gender),
+    comments(
+      id, content, created_at, user_id,
+      user:profiles!comments_user_id_fkey(id, name, avatar, verification_status)
+    )
+  `;
+
   const loadPosts = async () => {
     setIsLoadingPosts(true);
     const { data } = await supabase
       .from('posts')
-      .select(`
-        *,
-        profile:profiles!posts_user_id_fkey(name, avatar, verification_status, gender),
-        comments(
-          id, content, created_at, user_id,
-          user:profiles!comments_user_id_fkey(id, name, avatar, verification_status)
-        )
-      `)
-      .order('created_at', { ascending: false });
+      .select(POST_QUERY)
+      .order('created_at', { ascending: false })
+      .range(0, PAGE_SIZE - 1);
 
-    if (data) setPosts(data.map(mapPost));
+    if (data) {
+      setPosts(data.map(mapPost));
+      setHasMorePosts(data.length === PAGE_SIZE);
+      setPostsPage(1);
+    }
     setIsLoadingPosts(false);
+  };
+
+  const loadMorePosts = async () => {
+    if (isLoadingMorePosts || !hasMorePosts) return;
+    setIsLoadingMorePosts(true);
+    const from = postsPage * PAGE_SIZE;
+    const { data } = await supabase
+      .from('posts')
+      .select(POST_QUERY)
+      .order('created_at', { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (data) {
+      setPosts(prev => [...prev, ...data.map(mapPost)]);
+      setHasMorePosts(data.length === PAGE_SIZE);
+      setPostsPage(prev => prev + 1);
+    }
+    setIsLoadingMorePosts(false);
   };
 
   const loadConversations = async (userId: string) => {
@@ -496,11 +529,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      isLoggedIn, isLoadingPosts, isLoadingConversations, currentUser, userMode, posts, users: [],
+      isLoggedIn, isLoadingPosts, isLoadingMorePosts, hasMorePosts, isLoadingConversations,
+      currentUser, userMode, posts, users: [],
       subscriptionActive, showOnboarding, selectedCity,
       conversations, activeDMConversationId, unreadCount,
       login, signup, logout, setUserMode, setShowOnboarding,
-      addPost, deletePost, addComment, toggleSubscription, setSelectedCity,
+      addPost, loadMorePosts, deletePost, addComment, toggleSubscription, setSelectedCity,
       updateProfile,
       openDM, openDMById, closeDM, sendMessage, markAsRead,
       toasts, showToast, dismissToast,
