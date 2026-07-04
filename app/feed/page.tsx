@@ -20,6 +20,7 @@ interface Filters {
   rideType: RideType;
   gender: GenderFilter;
   timeOfDay: TimeOfDay;
+  date: string;
 }
 
 function getTimeOfDay(time: string): TimeOfDay {
@@ -44,7 +45,7 @@ export default function FeedPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<Filters>({ rideType: 'all', gender: 'all', timeOfDay: 'all' });
+  const [filters, setFilters] = useState<Filters>({ rideType: 'all', gender: 'all', timeOfDay: 'all', date: '' });
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const handleLoadMore = useCallback(() => {
@@ -71,15 +72,16 @@ export default function FeedPage() {
 
   const handleClearCity = () => {
     setSelectedCity(null);
-    setFilters({ rideType: 'all', gender: 'all', timeOfDay: 'all' });
+    setFilters({ rideType: 'all', gender: 'all', timeOfDay: 'all', date: '' });
   };
 
-  const clearFilters = () => setFilters({ rideType: 'all', gender: 'all', timeOfDay: 'all' });
+  const clearFilters = () => setFilters({ rideType: 'all', gender: 'all', timeOfDay: 'all', date: '' });
 
   const activeFilterCount = [
     filters.rideType !== 'all',
     filters.gender !== 'all',
     filters.timeOfDay !== 'all',
+    filters.date !== '',
   ].filter(Boolean).length;
 
   const filteredPosts = useMemo(() => {
@@ -91,6 +93,7 @@ export default function FeedPage() {
       if (filters.rideType !== 'all' && post.type !== filters.rideType) return false;
       if (filters.gender !== 'all' && post.genderPreference !== filters.gender) return false;
       if (filters.timeOfDay !== 'all' && getTimeOfDay(post.time) !== filters.timeOfDay) return false;
+      if (filters.date && post.date !== filters.date) return false;
       return true;
     });
   }, [posts, selectedCity, filters]);
@@ -185,6 +188,28 @@ export default function FeedPage() {
             </div>
 
             <div className="p-4 space-y-4">
+              {/* Date */}
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Date</p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={filters.date}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={e => setFilters(f => ({ ...f, date: e.target.value }))}
+                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:border-violet-400 focus:ring-violet-100 transition-all"
+                  />
+                  {filters.date && (
+                    <button
+                      onClick={() => setFilters(f => ({ ...f, date: '' }))}
+                      className="px-3 py-2 text-xs text-slate-500 hover:text-rose-500 border border-slate-200 rounded-xl hover:border-rose-200 transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Ride type */}
               <div>
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Ride Type</p>

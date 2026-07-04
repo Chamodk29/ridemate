@@ -174,11 +174,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     )
   `;
 
+  const today = () => new Date().toISOString().split('T')[0];
+
   const loadPosts = async () => {
     setIsLoadingPosts(true);
     const { data } = await supabase
       .from('posts')
       .select(POST_QUERY)
+      .gte('date', today())
+      .order('date', { ascending: true })
       .order('created_at', { ascending: false })
       .range(0, PAGE_SIZE - 1);
 
@@ -197,6 +201,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const { data } = await supabase
       .from('posts')
       .select(POST_QUERY)
+      .gte('date', today())
+      .order('date', { ascending: true })
       .order('created_at', { ascending: false })
       .range(from, from + PAGE_SIZE - 1);
 
