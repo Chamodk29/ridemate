@@ -191,7 +191,7 @@ export default function CreatePostModal({ onClose }: Props) {
               <iframe
                 key={mapSrc}
                 src={mapSrc}
-                className="w-full h-48 border-0"
+                className="w-full h-72 border-0"
                 loading="lazy"
                 title="Route preview"
               />
