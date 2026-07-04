@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
 import PostCard from '@/components/PostCard';
+import PostCardSkeleton from '@/components/PostCardSkeleton';
 import OnboardingModal from '@/components/OnboardingModal';
 import CreatePostModal from '@/components/CreatePostModal';
 import PaywallOverlay from '@/components/PaywallOverlay';
@@ -38,7 +39,7 @@ const TIME_OPTIONS: { key: TimeOfDay; label: string; icon: string; sub?: string 
 ];
 
 export default function FeedPage() {
-  const { isLoggedIn, posts, showOnboarding, subscriptionActive, selectedCity, setSelectedCity } = useApp();
+  const { isLoggedIn, isLoadingPosts, posts, showOnboarding, subscriptionActive, selectedCity, setSelectedCity } = useApp();
   const router = useRouter();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -250,19 +251,43 @@ export default function FeedPage() {
         {/* Feed */}
         <div className="relative">
           <div className="space-y-4">
-            {filteredPosts.length === 0 ? (
+            {isLoadingPosts ? (
+              <>
+                <PostCardSkeleton />
+                <PostCardSkeleton />
+                <PostCardSkeleton />
+              </>
+            ) : filteredPosts.length === 0 ? (
               <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
-                <div className="text-4xl mb-3">{selectedCity ? '🔍' : '🚗'}</div>
-                <p className="text-slate-600 font-semibold">
-                  {selectedCity ? `No rides found in ${selectedCity.name}` : 'No rides match your filters'}
-                </p>
-                <p className="text-slate-400 text-sm mt-1">
-                  Try adjusting your filters or search a different city
-                </p>
-                <button onClick={() => { clearFilters(); setSelectedCity(null); }}
-                  className="mt-4 px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors">
-                  Clear all filters
-                </button>
+                {posts.length === 0 && !selectedCity && activeFilterCount === 0 ? (
+                  <>
+                    <div className="w-16 h-16 bg-violet-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-8 h-8 text-violet-400">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                    </div>
+                    <p className="text-slate-700 font-semibold text-base">No rides yet</p>
+                    <p className="text-slate-400 text-sm mt-1">Be the first to post a ride in your city!</p>
+                    {subscriptionActive && (
+                      <button onClick={() => setShowCreateModal(true)}
+                        className="mt-4 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors">
+                        Post a ride
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="text-4xl mb-3">{selectedCity ? '🔍' : '🚗'}</div>
+                    <p className="text-slate-600 font-semibold">
+                      {selectedCity ? `No rides found in ${selectedCity.name}` : 'No rides match your filters'}
+                    </p>
+                    <p className="text-slate-400 text-sm mt-1">Try adjusting your filters or search a different city</p>
+                    <button onClick={() => { clearFilters(); setSelectedCity(null); }}
+                      className="mt-4 px-4 py-2 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors">
+                      Clear all filters
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               filteredPosts.map(post => <PostCard key={post.id} post={post} />)

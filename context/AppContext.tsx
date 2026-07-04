@@ -10,6 +10,7 @@ type AuthResult = { success: boolean; error?: string };
 
 interface AppContextType {
   isLoggedIn: boolean;
+  isLoadingPosts: boolean;
   currentUser: User | null;
   userMode: 'looking' | 'offering' | null;
   posts: Post[];
@@ -96,6 +97,7 @@ function mapConversation(c: any, messages: any[]): Conversation {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userMode, setUserModeState] = useState<'looking' | 'offering' | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -134,6 +136,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const loadPosts = async () => {
+    setIsLoadingPosts(true);
     const { data } = await supabase
       .from('posts')
       .select(`
@@ -147,6 +150,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .order('created_at', { ascending: false });
 
     if (data) setPosts(data.map(mapPost));
+    setIsLoadingPosts(false);
   };
 
   const loadConversations = async (userId: string) => {
@@ -449,7 +453,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      isLoggedIn, currentUser, userMode, posts, users: [],
+      isLoggedIn, isLoadingPosts, currentUser, userMode, posts, users: [],
       subscriptionActive, showOnboarding, selectedCity,
       conversations, activeDMConversationId, unreadCount,
       login, signup, logout, setUserMode, setShowOnboarding,
