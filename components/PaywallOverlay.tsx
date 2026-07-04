@@ -6,12 +6,12 @@ export default function PaywallOverlay() {
   const { toggleSubscription } = useApp();
 
   return (
-    <div className="absolute inset-0 z-20 flex items-center justify-center">
+    <div className="absolute inset-0 z-20 flex items-start justify-center pt-8">
       {/* Blur overlay */}
       <div className="absolute inset-0 bg-white/60 backdrop-blur-md" />
 
-      {/* Card */}
-      <div className="relative mx-4 w-full max-w-sm bg-white rounded-3xl shadow-2xl shadow-slate-900/15 border border-slate-100 overflow-hidden">
+      {/* Card — sticky so it stays visible while blur covers the full feed */}
+      <div className="sticky top-24 relative mx-4 w-full max-w-sm bg-white rounded-3xl shadow-2xl shadow-slate-900/15 border border-slate-100 overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500" />
 
         <div className="p-8 text-center">
