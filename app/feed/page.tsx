@@ -8,7 +8,6 @@ import PostCard from '@/components/PostCard';
 import PostCardSkeleton from '@/components/PostCardSkeleton';
 import OnboardingModal from '@/components/OnboardingModal';
 import CreatePostModal from '@/components/CreatePostModal';
-import PaywallOverlay from '@/components/PaywallOverlay';
 import CitySearch from '@/components/CitySearch';
 import { CityResult, GenderPreference } from '@/types';
 
@@ -40,7 +39,7 @@ const TIME_OPTIONS: { key: TimeOfDay; label: string; icon: string; sub?: string 
 ];
 
 export default function FeedPage() {
-  const { isLoggedIn, isLoadingPosts, isLoadingMorePosts, hasMorePosts, loadMorePosts, posts, showOnboarding, subscriptionActive, selectedCity, setSelectedCity } = useApp();
+  const { isLoggedIn, isLoadingPosts, isLoadingMorePosts, hasMorePosts, loadMorePosts, posts, showOnboarding, selectedCity, setSelectedCity } = useApp();
   const router = useRouter();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -316,12 +315,10 @@ export default function FeedPage() {
                     </div>
                     <p className="text-slate-700 font-semibold text-base">No rides yet</p>
                     <p className="text-slate-400 text-sm mt-1">Be the first to post a ride in your city!</p>
-                    {subscriptionActive && (
-                      <button onClick={() => setShowCreateModal(true)}
-                        className="mt-4 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors">
-                        Post a ride
-                      </button>
-                    )}
+                    <button onClick={() => setShowCreateModal(true)}
+                      className="mt-4 px-5 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-medium hover:bg-violet-700 transition-colors">
+                      Post a ride
+                    </button>
                   </>
                 ) : (
                   <>
@@ -361,22 +358,19 @@ export default function FeedPage() {
               </>
             )}
           </div>
-          {!subscriptionActive && <PaywallOverlay />}
         </div>
       </main>
 
       {/* FAB */}
-      {subscriptionActive && (
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 w-14 h-14 bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-2xl shadow-xl shadow-violet-300 hover:shadow-violet-400 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center z-30"
-          title="Post a ride"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-        </button>
-      )}
+      <button
+        onClick={() => setShowCreateModal(true)}
+        className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 w-14 h-14 bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-2xl shadow-xl shadow-violet-300 hover:shadow-violet-400 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center z-30"
+        title="Post a ride"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
     </div>
   );
 }

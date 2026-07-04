@@ -7,22 +7,13 @@ export default function PaywallOverlay() {
 
   return (
     <div className="absolute inset-0 z-20 flex items-start justify-center pt-8">
-      {/* Blur overlay */}
       <div className="absolute inset-0 bg-white/60 backdrop-blur-md" />
 
-      {/* Card — sticky so it stays visible while blur covers the full feed */}
       <div className="sticky top-24 relative mx-4 w-full max-w-sm bg-white rounded-3xl shadow-2xl shadow-slate-900/15 border border-slate-100 overflow-hidden">
         <div className="h-1 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500" />
 
         <div className="p-8 text-center">
-          {/* Icon */}
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl mb-5 shadow-lg shadow-violet-200">
-            <svg viewBox="0 0 24 24" fill="white" className="w-8 h-8">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
-              <path d="M17 8H7v8h2v-6h6v6h2V8z" opacity="0" />
-            </svg>
-          </div>
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl mb-5 shadow-lg shadow-violet-200 -mt-16">
             <svg viewBox="0 0 24 24" fill="white" className="w-8 h-8">
               <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
             </svg>
@@ -32,16 +23,16 @@ export default function PaywallOverlay() {
             Unlock the Community
           </h3>
           <p className="text-sm text-slate-500 leading-relaxed mb-6">
-            Subscribe to access the full ride feed, connect with verified drivers and passengers, and post your rides.
+            Join groups of regular commuters, plan trips together, and build a reliable carpool network in your city.
           </p>
 
-          {/* Features */}
           <div className="space-y-2 mb-6 text-left">
             {[
-              'Unlimited ride posts',
-              'Connect with verified members',
-              'Priority visibility for your posts',
-              'Advanced filters & search',
+              'Create and join carpool groups',
+              'Plan group trips and coordinate',
+              'Connect with verified commuters',
+              'Group announcements and chat',
+              'Priority matching with members',
             ].map(feature => (
               <div key={feature} className="flex items-center gap-2.5">
                 <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
@@ -54,7 +45,6 @@ export default function PaywallOverlay() {
             ))}
           </div>
 
-          {/* Price */}
           <div className="bg-slate-50 rounded-2xl p-4 mb-5">
             <div className="flex items-baseline justify-center gap-1 mb-1">
               <span className="text-3xl font-bold text-slate-900">$4.99</span>
