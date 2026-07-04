@@ -135,6 +135,25 @@ export default function PostCard({ post }: Props) {
           </div>
         </div>
 
+        {/* Cost chip */}
+        <div className="mb-3">
+          {post.costType === 'free' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              🎁 Free ride
+            </span>
+          )}
+          {post.costType === 'split' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+              ⛽ Fuel split
+            </span>
+          )}
+          {post.costType === 'fixed' && post.costAmount && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+              💵 LKR {post.costAmount.toLocaleString()} per person
+            </span>
+          )}
+        </div>
+
         {/* Meta chips */}
         <div className="flex flex-wrap gap-2 mb-3">
           <span className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 px-2.5 py-1 rounded-lg">

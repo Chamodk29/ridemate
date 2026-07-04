@@ -73,6 +73,8 @@ function mapPost(p: any): Post {
     time: p.time,
     seats: p.seats,
     genderPreference: p.gender_preference,
+    costType: p.cost_type ?? 'split',
+    costAmount: p.cost_amount ?? undefined,
     description: p.description ?? '',
     timestamp: p.created_at,
     comments: (p.comments ?? []).map((c: any) => ({
@@ -409,6 +411,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       time: post.time,
       seats: post.seats ?? null,
       gender_preference: post.genderPreference,
+      cost_type: post.costType,
+      cost_amount: post.costAmount ?? null,
       description: post.description,
     });
     showToast('Ride posted!');

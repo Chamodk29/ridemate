@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useApp } from '@/context/AppContext';
-import { Post, GenderPreference, CityResult } from '@/types';
+import { Post, GenderPreference, CityResult, CostType } from '@/types';
 import CitySearch from './CitySearch';
 
 const RoutePickerMap = dynamic(() => import('./RoutePickerMap'), { ssr: false });
@@ -25,6 +25,8 @@ export default function CreatePostModal({ onClose }: Props) {
   const [time, setTime] = useState('');
   const [seats, setSeats] = useState('');
   const [genderPreference, setGenderPreference] = useState<GenderPreference>('any');
+  const [costType, setCostType] = useState<CostType>('split');
+  const [costAmount, setCostAmount] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -64,6 +66,8 @@ export default function CreatePostModal({ onClose }: Props) {
         time,
         seats: type === 'offering' && seats ? parseInt(seats) : undefined,
         genderPreference,
+        costType,
+        costAmount: costType === 'fixed' && costAmount ? parseFloat(costAmount) : undefined,
         description,
         timestamp: new Date().toISOString(),
         comments: [],
@@ -255,6 +259,44 @@ export default function CreatePostModal({ onClose }: Props) {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Cost / fare */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Cost Sharing</label>
+            <div className="flex gap-2 mb-2">
+              {([
+                { key: 'free',  label: '🎁 Free',         desc: 'No charge' },
+                { key: 'split', label: '⛽ Split fuel',    desc: 'Equal split' },
+                { key: 'fixed', label: '💵 Fixed amount',  desc: 'Set a price' },
+              ] as { key: CostType; label: string; desc: string }[]).map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => { setCostType(opt.key); if (opt.key !== 'fixed') setCostAmount(''); }}
+                  className={`flex-1 flex flex-col items-center py-2 px-1 rounded-xl text-xs font-medium transition-all border ${
+                    costType === opt.key
+                      ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <span>{opt.label}</span>
+                  <span className={`text-[10px] mt-0.5 ${costType === opt.key ? 'text-violet-200' : 'text-slate-400'}`}>{opt.desc}</span>
+                </button>
+              ))}
+            </div>
+            {costType === 'fixed' && (
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">LKR</span>
+                <input
+                  type="number"
+                  value={costAmount}
+                  onChange={e => setCostAmount(e.target.value)}
+                  placeholder="e.g. 500"
+                  min="0"
+                  className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
+                />
+              </div>
+            )}
           </div>
 
           {/* Description */}

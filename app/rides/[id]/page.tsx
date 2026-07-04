@@ -48,6 +48,8 @@ function mapPost(p: any): Post {
     time: p.time,
     seats: p.seats,
     genderPreference: p.gender_preference,
+    costType: p.cost_type ?? 'split',
+    costAmount: p.cost_amount ?? undefined,
     description: p.description ?? '',
     timestamp: p.created_at,
     comments: (p.comments ?? []).map((c: any) => ({
@@ -215,6 +217,16 @@ export default function RideDetailsPage() {
                     <p className="text-xs text-slate-400 mb-0.5">Preference</p>
                     <p className="text-sm font-semibold text-slate-800">
                       {GENDER_LABELS[post.genderPreference]?.label ?? 'Open to all'}
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-3">
+                    <p className="text-xs text-slate-400 mb-0.5">Cost</p>
+                    <p className="text-sm font-semibold text-slate-800">
+                      {post.costType === 'free' && '🎁 Free'}
+                      {post.costType === 'split' && '⛽ Fuel split'}
+                      {post.costType === 'fixed' && post.costAmount
+                        ? `💵 LKR ${post.costAmount.toLocaleString()}`
+                        : post.costType === 'fixed' ? '💵 Fixed' : ''}
                     </p>
                   </div>
                 </div>

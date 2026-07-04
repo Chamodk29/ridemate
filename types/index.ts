@@ -1,6 +1,7 @@
 export type VerificationStatus = 'verified' | 'pending' | 'not_verified';
 export type Gender = 'male' | 'female' | 'other' | 'prefer_not_to_say';
 export type GenderPreference = 'any' | 'male' | 'female';
+export type CostType = 'free' | 'split' | 'fixed';
 
 export interface CityResult {
   name: string;
@@ -51,6 +52,8 @@ export interface Post {
   time: string;
   seats?: number;
   genderPreference: GenderPreference;
+  costType: CostType;
+  costAmount?: number;
   description: string;
   timestamp: string;
   comments: Comment[];
