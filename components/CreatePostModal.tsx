@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useApp } from '@/context/AppContext';
 import { Post, GenderPreference, CityResult } from '@/types';
 import CitySearch from './CitySearch';
+
+const RoutePickerMap = dynamic(() => import('./RoutePickerMap'), { ssr: false });
 
 interface Props {
   onClose: () => void;
@@ -16,6 +19,8 @@ export default function CreatePostModal({ onClose }: Props) {
   const [to, setTo] = useState('');
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
+  const [cityCenter, setCityCenter] = useState<[number, number] | null>(null);
+  const [showMapPicker, setShowMapPicker] = useState(false);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [seats, setSeats] = useState('');
@@ -23,17 +28,6 @@ export default function CreatePostModal({ onClose }: Props) {
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [mapSrc, setMapSrc] = useState('');
-
-  useEffect(() => {
-    if (!from.trim() || !to.trim()) { setMapSrc(''); return; }
-    const timer = setTimeout(() => {
-      const origin = encodeURIComponent(`${from.trim()}${city ? ', ' + city + ', ' + country : ''}`);
-      const dest   = encodeURIComponent(`${to.trim()}${city ? ', ' + city + ', ' + country : ''}`);
-      setMapSrc(`https://maps.google.com/maps?f=d&saddr=${origin}&daddr=${dest}&output=embed&t=m`);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [from, to, city, country]);
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
@@ -47,6 +41,7 @@ export default function CreatePostModal({ onClose }: Props) {
   const handleCitySelect = (result: CityResult) => {
     setCity(result.name);
     setCountry(result.country);
+    setCityCenter([parseFloat(result.lat), parseFloat(result.lon)]);
   };
 
   const handleSubmit = () => {
@@ -148,55 +143,61 @@ export default function CreatePostModal({ onClose }: Props) {
 
           {/* From / To */}
           <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">From</label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500">
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><circle cx="12" cy="12" r="4" /></svg>
-                </div>
-                <input
-                  type="text" value={from} onChange={e => setFrom(e.target.value)}
-                  placeholder="Pickup location"
-                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
-                />
+            {/* Tab toggle */}
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Route</label>
+              <div className="ml-auto flex bg-slate-100 rounded-lg p-0.5">
+                <button
+                  onClick={() => setShowMapPicker(false)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${!showMapPicker ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
+                >
+                  ✏️ Type
+                </button>
+                <button
+                  onClick={() => setShowMapPicker(true)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${showMapPicker ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
+                >
+                  🗺️ Pick on Map
+                </button>
               </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">To</label>
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-violet-500">
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                    <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <input
-                  type="text" value={to} onChange={e => setTo(e.target.value)}
-                  placeholder="Destination"
-                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
-                />
-              </div>
-            </div>
-          </div>
 
-          {/* Route map preview */}
-          {mapSrc && (
-            <div className="rounded-xl overflow-hidden border border-slate-200">
-              <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border-b border-slate-200">
-                <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-violet-500 flex-shrink-0">
-                  <path fillRule="evenodd" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z" clipRule="evenodd"/>
-                </svg>
-                <span className="text-xs font-semibold text-slate-600">Route Preview</span>
-                <span className="text-xs text-slate-400 ml-auto">{from} → {to}</span>
-              </div>
-              <iframe
-                key={mapSrc}
-                src={mapSrc}
-                className="w-full h-72 border-0"
-                loading="lazy"
-                title="Route preview"
+            {showMapPicker ? (
+              <RoutePickerMap
+                cityCenter={cityCenter}
+                onRouteChange={(f, t) => { setFrom(f); setTo(t); }}
               />
-            </div>
-          )}
+            ) : (
+              <>
+                <div>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500">
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><circle cx="12" cy="12" r="4" /></svg>
+                    </div>
+                    <input
+                      type="text" value={from} onChange={e => setFrom(e.target.value)}
+                      placeholder="Pickup location"
+                      className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-violet-500">
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                        <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text" value={to} onChange={e => setTo(e.target.value)}
+                      placeholder="Destination"
+                      className="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Date & Time */}
           <div className="grid grid-cols-2 gap-3">
