@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
 import DMPanel from "@/components/DMPanel";
+import ToastContainer from "@/components/ToastContainer";
 
 const geist = Geist({
   variable: "--font-geist-sans",
@@ -25,6 +26,7 @@ export default function RootLayout({
         <AppProvider>
           {children}
           <DMPanel />
+          <ToastContainer />
         </AppProvider>
       </body>
     </html>

@@ -8,6 +8,12 @@ const supabase = createClient();
 
 type AuthResult = { success: boolean; error?: string };
 
+interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
+
 interface AppContextType {
   isLoggedIn: boolean;
   isLoadingPosts: boolean;
@@ -36,6 +42,9 @@ interface AppContextType {
   sendMessage: (conversationId: string, content: string) => Promise<void>;
   markAsRead: (conversationId: string) => Promise<void>;
   unreadCount: number;
+  toasts: Toast[];
+  showToast: (message: string, type?: Toast['type']) => void;
+  dismissToast: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -107,6 +116,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [selectedCity, setSelectedCity] = useState<CityResult | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeDMConversationId, setActiveDMConversationId] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const showToast = (message: string, type: Toast['type'] = 'success') => {
+    const id = Math.random().toString(36).slice(2);
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500);
+  };
+
+  const dismissToast = (id: string) => setToasts(prev => prev.filter(t => t.id !== id));
 
   // ── Load helpers ────────────────────────────────────────────────────────────
 
@@ -345,12 +363,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       gender_preference: post.genderPreference,
       description: post.description,
     });
-    // Real-time subscription handles adding to state
+    showToast('Ride posted!');
   };
 
   const deletePost = async (postId: string) => {
     await supabase.from('posts').delete().eq('id', postId);
     setPosts(prev => prev.filter(p => p.id !== postId));
+    showToast('Post deleted');
   };
 
   const addComment = async (postId: string, comment: Comment) => {
@@ -360,7 +379,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user_id: currentUser.id,
       content: comment.content,
     });
-    // Real-time subscription handles adding to state
+    showToast('Comment posted');
   };
 
   const toggleSubscription = () => setSubscriptionActive(prev => !prev);
@@ -417,6 +436,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const conv = mapConversation({ ...newConv, participants }, []);
       setConversations(prev => [conv, ...prev]);
       setActiveDMConversationId(newConv.id);
+      showToast('Conversation started');
     }
   };
 
@@ -465,6 +485,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       login, signup, logout, setUserMode, setShowOnboarding,
       addPost, deletePost, addComment, toggleSubscription, setSelectedCity,
       openDM, openDMById, closeDM, sendMessage, markAsRead,
+      toasts, showToast, dismissToast,
     }}>
       {children}
     </AppContext.Provider>
