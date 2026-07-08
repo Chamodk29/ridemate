@@ -9,6 +9,7 @@ import PostCardSkeleton from '@/components/PostCardSkeleton';
 import OnboardingModal from '@/components/OnboardingModal';
 import CreatePostModal from '@/components/CreatePostModal';
 import CitySearch from '@/components/CitySearch';
+import AnnouncementBanner from '@/components/AnnouncementBanner';
 import { CityResult, GenderPreference } from '@/types';
 
 type RideType = 'all' | 'offering' | 'looking';
@@ -113,6 +114,8 @@ export default function FeedPage() {
       {showCreateModal && <CreatePostModal onClose={() => setShowCreateModal(false)} />}
 
       <main className="max-w-2xl mx-auto px-4 pt-20 pb-24 sm:pt-24">
+
+        <AnnouncementBanner />
 
         {/* Search + filter header */}
         <div className="mb-5">
