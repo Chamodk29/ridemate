@@ -18,16 +18,15 @@ interface RecentUser {
   id: string;
   name: string;
   avatar: string;
-  email: string;
   verification_status: string;
   created_at: string;
 }
 
 interface RecentPost {
   id: string;
-  user_name: string;
-  from_city: string;
-  to_city: string;
+  profile: { name: string } | null;
+  from_location: string;
+  to_location: string;
   type: string;
   created_at: string;
 }
@@ -74,8 +73,8 @@ export default function AdminOverviewPage() {
         db.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'open'),
         db.from('profiles').select('*', { count: 'exact', head: true }).gte('created_at', today),
         db.from('posts').select('*', { count: 'exact', head: true }).gte('created_at', today),
-        db.from('profiles').select('id, name, avatar, email, verification_status, created_at').order('created_at', { ascending: false }).limit(5),
-        db.from('posts').select('id, user_name, from_city, to_city, type, created_at').order('created_at', { ascending: false }).limit(5),
+        db.from('profiles').select('id, name, avatar, verification_status, created_at').order('created_at', { ascending: false }).limit(5),
+        db.from('posts').select('id, from_location, to_location, type, created_at, profile:profiles!posts_user_id_fkey(name)').order('created_at', { ascending: false }).limit(5),
       ]);
 
       setStats({
@@ -150,7 +149,7 @@ export default function AdminOverviewPage() {
                   alt={u.name} className="w-8 h-8 rounded-full bg-slate-700 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-200 truncate">{u.name}</p>
-                  <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                  <p className="text-xs text-slate-500 truncate capitalize">{u.verification_status}</p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
@@ -185,8 +184,8 @@ export default function AdminOverviewPage() {
                   {p.type === 'offering' ? '🚗' : '🙋'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-200 truncate">{p.from_city} → {p.to_city}</p>
-                  <p className="text-xs text-slate-500 truncate">by {p.user_name}</p>
+                  <p className="text-sm font-medium text-slate-200 truncate">{p.from_location} → {p.to_location}</p>
+                  <p className="text-xs text-slate-500 truncate">by {(p.profile as any)?.name ?? 'Unknown'}</p>
                 </div>
                 <span className="text-[10px] text-slate-600 flex-shrink-0">{timeAgo(p.created_at)}</span>
               </div>
