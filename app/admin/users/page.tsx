@@ -7,7 +7,6 @@ interface AdminUser {
   id: string;
   name: string;
   avatar: string;
-  email: string;
   verification_status: string;
   is_suspended: boolean;
   is_admin: boolean;
@@ -34,7 +33,7 @@ export default function AdminUsersPage() {
     setLoading(true);
     const db = createClient();
     let q = db.from('profiles')
-      .select('id, name, avatar, email, verification_status, is_suspended, is_admin, total_rides, rating, bio, created_at')
+      .select('id, name, avatar, verification_status, is_suspended, is_admin, total_rides, rating, bio, created_at')
       .order('created_at', { ascending: false });
 
     if (filter === 'Verified') q = q.eq('verification_status', 'verified');
@@ -131,7 +130,7 @@ export default function AdminUsersPage() {
                             <p className="text-sm font-medium text-slate-200 truncate">{u.name}</p>
                             {u.is_admin && <span className="text-[10px] bg-violet-900/60 text-violet-300 px-1.5 py-0.5 rounded font-medium">Admin</span>}
                           </div>
-                          <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                          <p className="text-xs text-slate-500 truncate">{u.bio || 'No bio'}</p>
                         </div>
                       </div>
                     </td>
