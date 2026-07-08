@@ -21,6 +21,7 @@ interface AppContextType {
   hasMorePosts: boolean;
   isLoadingConversations: boolean;
   currentUser: User | null;
+  isAdmin: boolean;
   userMode: 'looking' | 'offering' | null;
   posts: Post[];
   users: User[];
@@ -117,6 +118,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [userMode, setUserModeState] = useState<'looking' | 'offering' | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [subscriptionActive, setSubscriptionActive] = useState(false);
@@ -162,6 +164,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         rating: data.rating ?? 0,
       });
       setSubscriptionActive(data.subscription_active);
+      setIsAdmin(data.is_admin ?? false);
       setIsLoggedIn(true);
     }
   };
@@ -555,7 +558,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       isLoggedIn, isLoadingPosts, isLoadingMorePosts, hasMorePosts, isLoadingConversations,
-      currentUser, userMode, posts, users: [],
+      currentUser, isAdmin, userMode, posts, users: [],
       subscriptionActive, showOnboarding, selectedCity,
       conversations, activeDMConversationId, unreadCount,
       login, signup, logout, setUserMode, setShowOnboarding,

@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 import VerificationBadge from './VerificationBadge';
 
 export default function Navbar() {
-  const { currentUser, logout, subscriptionActive, toggleSubscription, unreadCount } = useApp();
+  const { currentUser, logout, subscriptionActive, toggleSubscription, unreadCount, isAdmin } = useApp();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -94,6 +94,25 @@ export default function Navbar() {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
+          {/* Admin link */}
+          {isAdmin && (
+            <button
+              onClick={() => router.push('/admin')}
+              title="Admin dashboard"
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+                pathname.startsWith('/admin')
+                  ? 'border-violet-400 bg-violet-100 text-violet-700'
+                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-violet-50 hover:text-violet-700 hover:border-violet-200'
+              }`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Admin
+            </button>
+          )}
+
           {/* Subscription toggle */}
           <button
             onClick={toggleSubscription}
