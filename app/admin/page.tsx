@@ -88,7 +88,7 @@ export default function AdminOverviewPage() {
         newPostsToday: newPostsToday ?? 0,
       });
       setRecentUsers(latestUsers ?? []);
-      setRecentPosts(latestPosts ?? []);
+      setRecentPosts((latestPosts ?? []) as any);
       setLoading(false);
     })();
   }, []);
