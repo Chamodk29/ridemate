@@ -5,11 +5,10 @@ import { createClient } from '@/lib/supabase/client';
 
 interface AdminPost {
   id: string;
-  user_name: string;
-  user_avatar: string;
+  profile: { name: string; avatar: string } | null;
   type: 'offering' | 'looking';
-  from_city: string;
-  to_city: string;
+  from_location: string;
+  to_location: string;
   date: string;
   seats: number | null;
   cost_type: string;
@@ -36,17 +35,17 @@ export default function AdminPostsPage() {
     setLoading(true);
     const db = createClient();
     let q = db.from('posts')
-      .select('id, user_name, user_avatar, type, from_city, to_city, date, seats, cost_type, cost_amount, description, created_at')
+      .select('id, type, from_location, to_location, date, seats, cost_type, cost_amount, description, created_at, profile:profiles!posts_user_id_fkey(name, avatar)')
       .order('created_at', { ascending: false });
 
     if (typeFilter === 'Offering') q = q.eq('type', 'offering');
     if (typeFilter === 'Looking') q = q.eq('type', 'looking');
     if (search.trim()) {
-      q = q.or(`from_city.ilike.%${search.trim()}%,to_city.ilike.%${search.trim()}%,user_name.ilike.%${search.trim()}%`);
+      q = q.or(`from_location.ilike.%${search.trim()}%,to_location.ilike.%${search.trim()}%`);
     }
 
     const { data } = await q.limit(50);
-    setPosts(data ?? []);
+    setPosts((data as any) ?? []);
     setLoading(false);
   }, [typeFilter, search]);
 
@@ -72,6 +71,8 @@ export default function AdminPostsPage() {
     return <span className="text-slate-500">—</span>;
   };
 
+  const userName = (post: AdminPost) => post.profile?.name ?? 'Unknown';
+
   return (
     <div className="space-y-6">
       <div>
@@ -87,7 +88,7 @@ export default function AdminPostsPage() {
           </svg>
           <input
             type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search city or username…"
+            placeholder="Search by city…"
             className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500"
           />
         </div>
@@ -113,22 +114,20 @@ export default function AdminPostsPage() {
           <div className="divide-y divide-slate-800">
             {posts.map(post => (
               <div key={post.id} className="flex items-start gap-4 px-5 py-4 hover:bg-slate-800/40 transition-colors">
-                {/* Type badge */}
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0 ${
                   post.type === 'offering' ? 'bg-violet-900/50 text-violet-300' : 'bg-blue-900/50 text-blue-300'
                 }`}>
                   {post.type === 'offering' ? '🚗' : '🙋'}
                 </div>
 
-                {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-200">
-                        {post.from_city} → {post.to_city}
+                        {post.from_location} → {post.to_location}
                       </p>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-                        <span className="text-xs text-slate-500">by {post.user_name}</span>
+                        <span className="text-xs text-slate-500">by {userName(post)}</span>
                         <span className="text-xs text-slate-600">{formatDate(post.date)}</span>
                         {post.seats != null && (
                           <span className="text-xs text-slate-500">{post.seats} seat{post.seats !== 1 ? 's' : ''}</span>
@@ -163,7 +162,7 @@ export default function AdminPostsPage() {
           <div className="relative bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
             <h3 className="text-base font-bold text-white mb-2">Delete post?</h3>
             <p className="text-sm text-slate-400 mb-5">
-              Remove <span className="text-slate-200 font-medium">{confirmDelete.from_city} → {confirmDelete.to_city}</span> by {confirmDelete.user_name}. This cannot be undone.
+              Remove <span className="text-slate-200 font-medium">{confirmDelete.from_location} → {confirmDelete.to_location}</span> by {userName(confirmDelete)}. This cannot be undone.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDelete(null)}
