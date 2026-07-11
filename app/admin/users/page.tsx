@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { generateUserReportPDF } from '@/lib/generateUserReport';
 
 interface AdminUser {
   id: string;
@@ -25,9 +26,21 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('All');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
   const [toast, setToast] = useState('');
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2500); };
+
+  const handleReport = async () => {
+    setReportLoading(true);
+    const db = createClient();
+    const { data } = await db
+      .from('profiles')
+      .select('name, verification_status, is_suspended, is_admin, total_rides, rating, bio, created_at')
+      .order('created_at', { ascending: false });
+    generateUserReportPDF(data ?? []);
+    setReportLoading(false);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,6 +86,20 @@ export default function AdminUsersPage() {
           <h1 className="text-2xl font-bold text-white">Users</h1>
           <p className="text-slate-400 text-sm mt-0.5">{users.length} result{users.length !== 1 ? 's' : ''}</p>
         </div>
+        <button
+          onClick={handleReport}
+          disabled={reportLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all"
+        >
+          {reportLoading ? (
+            <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+            </svg>
+          )}
+          {reportLoading ? 'Generating…' : 'Download Report'}
+        </button>
       </div>
 
       {/* Search + Filter */}
